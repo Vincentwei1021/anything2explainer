@@ -1,0 +1,5 @@
+# 解说词模板：删掉本注释，按 reference/narration-storyboard.md 写。`# CHAPTER n 章名` 分章；一行一句；`|` 只切字幕块（≤16 字）。
+# CHAPTER 1 第一章名
+第一句|切成字幕块
+# CHAPTER 2 第二章名
+第二章第一句
