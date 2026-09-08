@@ -11,7 +11,7 @@
 
 它不是一个 CLI。仓库里装的是让 AI 编程 agent 把片子做出来的整套方法：可编译的 Remotion 模板工程、图元与光效库、配音/分镜/渲染/量化质检工具、风格与动效规范、多 agent 分工协议，以及一条完整样片作为质量标尺。
 
-![样片《RAG 与知识库》前 30 秒的帧总表：黑底星空、白线条图形配紫色重点、超粗黑体大字、44px 字幕与章节进度条](examples/rag/frames/overview_1.jpg)
+https://github.com/user-attachments/assets/62543730-fee6-4423-bbeb-f33d9d76ea29
 
 样片《RAG 与知识库》：4′35″、44 句解说、44 个镜头，8 个构建 agent 并行 40 分钟 + 两轮 QC。
 全套过程文件在 [`examples/rag/`](examples/rag/)（调研 → 解说词 → 分镜表 → 镜头源码 → QC 报告 → 交付说明），成片帧在 [`examples/rag/frames/`](examples/rag/frames/)。

@@ -11,11 +11,7 @@
 
 It is not a CLI. What ships here is the whole method an AI coding agent needs to finish the film: a compilable Remotion template, a primitives and lighting library, tooling for voiceover / storyboard / rendering / quantitative QC, written style and motion specs, a multi-agent division-of-labour protocol, and one complete reference film as the quality bar.
 
-![Contact sheet of the first 30 seconds of the reference film "RAG and Knowledge Bases": black starfield canvas, white line-art diagrams with purple highlights, ultra-bold headline type, 44px subtitles and a chapter progress bar](examples/rag/frames/overview_1.jpg)
-
 https://github.com/user-attachments/assets/62543730-fee6-4423-bbeb-f33d9d76ea29
-
-
 
 Reference film *RAG and Knowledge Bases*: 4′35″, 44 narration lines, 44 shots, 8 build agents in parallel for 40 minutes, two QC rounds.
 Its full paper trail lives in [`examples/rag/`](examples/rag/) (research → narration → storyboard → shot source → QC reports → delivery notes); rendered frames are in [`examples/rag/frames/`](examples/rag/frames/).

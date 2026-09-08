@@ -5,6 +5,7 @@
   ## gap <帧数>             在下一句前额外插入空白帧
   一句话|按竖线分成字幕短句            → 竖线只切字幕，不影响朗读
                                        每块预算：中文 ≤16 字 / 英文 ≤48 字符（超了会打 ⚠ 并自动缩字号）
+                                       块首尾空格会去掉；英文片把块用空格拼回整句给 TTS（"a|b" 与 "a | b" 等价），中文直接拼接
 输出：
   public/assets/<slug>/audio.wav（48k 立体声 16bit；slug 读 src/config.ts）
   script/timeline.json / timeline.md
@@ -93,11 +94,12 @@ SUB_BUDGET = {'zh': '16 字', 'en': '48 字符'}
 
 
 def text_em(s):
+    """与 src/common/textfit.ts 的 textEm() 同一张表（改一处要同步另一处）。"""
     t = 0.0
     for ch in s:
         c = ord(ch)
-        if c >= 0x2e80:
-            t += 1.0                     # CJK / 全角
+        if c >= 0x2000:
+            t += 1.0                     # CJK / 全角，以及 U+2000 起的标点 / 箭头 / 数学符号（— … “ ” → ∑ 在 Noto 里都是 1em）
         elif ch == ' ':
             t += 0.227
         elif 'A' <= ch <= 'Z':
@@ -106,6 +108,8 @@ def text_em(s):
             t += 0.59
         elif 'a' <= ch <= 'z':
             t += 0.566
+        elif 0xc0 <= c < 0x250:
+            t += 0.58                    # 带重音的拉丁字母
         else:
             t += 0.325                   # 半角标点
     return t
@@ -181,8 +185,9 @@ def trim_edges(x, thr=0.004):
     return x[a:b], a / SR
 
 
-def chunk_starts(tts_text, chunks, words, lead_cut, dur):
-    """按 | 切出的字幕短句 → 每块在句内的起始秒。word 边界按字符游标对到原句。"""
+def chunk_starts(tts_text, chunks, words, lead_cut, dur, sep=''):
+    """按 | 切出的字幕短句 → 每块在句内的起始秒。word 边界按字符游标对到原句。
+    tts_text == sep.join(chunks)：英文 sep=' '，游标要跳过块间的那个空格。"""
     # 每个字符的起始时间（按 word 边界填充）
     char_t = [None] * len(tts_text)
     cur = 0
@@ -208,7 +213,7 @@ def chunk_starts(tts_text, chunks, words, lead_cut, dur):
             if char_t[i] is not None:
                 st = char_t[i][0]; break
         starts.append(st)
-        pos += len(c)
+        pos += len(c) + len(sep)
     # 兜底：无边界的块按字数线性插值
     for i, st in enumerate(starts):
         if st is None:
@@ -218,16 +223,16 @@ def chunk_starts(tts_text, chunks, words, lead_cut, dur):
     return [max(0.0, s) for s in starts]
 
 
-async def synth_sentence(chunks):
-    """一句 → (音频 float32 单声道, 每个字幕块在句内的起始秒, 句长秒)。
+async def synth_sentence(chunks, sep=''):
+    """一句 → (音频 float32 单声道, 每个字幕块在句内的起始秒, 句长秒)。sep 是块之间的连接符（英文 ' '，中文 ''）。
     edge：整句合成一次，块起点按词边界对齐（最准）。
     kokoro：无词边界 → 逐字幕块分别合成再拼接，块起点因此是精确的，代价是块界断句略生硬。"""
-    text = ''.join(chunks)
+    text = sep.join(chunks)
     if ENGINE == 'edge':
         au, words = await synth_edge(text)
         x, lead_cut = trim_edges(decode(au))
         dur = len(x) / SR
-        return x, chunk_starts(text, chunks, words, lead_cut, dur), dur
+        return x, chunk_starts(text, chunks, words, lead_cut, dur, sep), dur
     pad = np.zeros(int(CHUNK_PAD * SR), dtype=np.float32)
     parts = []; starts = []; pos = 0.0
     for i, c in enumerate(chunks):
@@ -250,6 +255,8 @@ async def main(narr):
     if lang != CFG_LANG:
         print(f"⚠ src/config.ts 的 lang: '{CFG_LANG}' 与解说词语言 {lang} 不一致——改过来，"
               f"否则标题压窄与居中基线会按错的语言算")
+    # 字幕块拼回整句给 TTS 时的连接符：英文词与词之间要有空格（否则 "powerful|but" 会被念成 powerfulbut），中文直接拼
+    sep = ' ' if lang == 'en' else ''
     t = LEAD / FPS
     audio_parts = []  # (start_sec, np.array)
     sentences = []; chapters = []
@@ -262,9 +269,11 @@ async def main(narr):
             continue
         t += it['gap_before'] / FPS
         raw = it['raw']
-        chunks = [c for c in raw.split('|') if c != '']
-        tts_text = ''.join(chunks)
-        x, starts, dur = await synth_sentence(chunks)
+        chunks = [c.strip() for c in raw.split('|') if c.strip()]
+        if not chunks:
+            continue
+        tts_text = sep.join(chunks)
+        x, starts, dur = await synth_sentence(chunks, sep)
         sid += 1
         subs = [(t + starts[i], t + (starts[i + 1] if i + 1 < len(starts) else dur)) for i in range(len(chunks))]
         f0 = int(round(t * FPS)) + 1; f1 = int(round((t + dur) * FPS))
