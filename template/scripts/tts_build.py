@@ -84,8 +84,31 @@ def detect_lang(items):
     return 'zh' if cjk >= 0.2 * max(1, len(txt)) else 'en'
 
 
-# 每块字幕的长度预算：超了 Subtitle.tsx 会自动缩字号兜底，但该改的是文案（见 narration-storyboard.md）
-SUB_BUDGET = {'zh': 16, 'en': 48}
+# 字幕块宽度预判：与 src/common/textfit.ts 用同一张 em 宽表（字体 fontTools 实测），
+# 直接算「44px 下会不会超过安全区 1160px」——比按字数判准，中英混排（如「几百个 token 一块」）不会误报。
+# 授稿建议仍是每块中文 ≤16 字 / 英文 ≤48 字符（见 narration-storyboard.md）。
+SUB_MAX_W = 1160
+SUB_SIZE = 44
+SUB_BUDGET = {'zh': '16 字', 'en': '48 字符'}
+
+
+def text_em(s):
+    t = 0.0
+    for ch in s:
+        c = ord(ch)
+        if c >= 0x2e80:
+            t += 1.0                     # CJK / 全角
+        elif ch == ' ':
+            t += 0.227
+        elif 'A' <= ch <= 'Z':
+            t += 0.668
+        elif '0' <= ch <= '9':
+            t += 0.59
+        elif 'a' <= ch <= 'z':
+            t += 0.566
+        else:
+            t += 0.325                   # 半角标点
+    return t
 
 
 def write_wav(path, x, sr):
@@ -273,13 +296,14 @@ async def main(narr):
     for i in range(len(all_subs) - 1):
         if all_subs[i]['to'] >= all_subs[i + 1]['from']:
             all_subs[i]['to'] = all_subs[i + 1]['from'] - 1
-    # 字幕块长度体检：超预算的块会被 Subtitle.tsx 缩字号兜底，但正确做法是回去切文案
-    over = [sb for sb in all_subs if len(sb['text']) > SUB_BUDGET[lang]]
+    # 字幕块宽度体检：超安全区的块会被 Subtitle.tsx 缩字号（>1.3 倍还会折两行压进内容区），正确做法是回去切文案
+    over = [(sb, text_em(sb['text']) * SUB_SIZE) for sb in all_subs]
+    over = [(sb, w) for sb, w in over if w > SUB_MAX_W]
     if over:
-        unit = '字' if lang == 'zh' else '字符'
-        print(f'⚠ {len(over)}/{len(all_subs)} 块字幕超过每块 {SUB_BUDGET[lang]} {unit}（会自动缩字号，建议用 | 再切）：')
-        for sb in over[:5]:
-            print(f"    f{sb['from']} ({len(sb['text'])}{unit}) {sb['text']}")
+        print(f'⚠ {len(over)}/{len(all_subs)} 块字幕在 {SUB_SIZE}px 下超过安全区 {SUB_MAX_W}px'
+              f'（会自动缩字号；建议每块 {SUB_BUDGET[lang]}，用 | 再切一刀）：')
+        for sb, w in over[:5]:
+            print(f"    f{sb['from']} (≈{w:.0f}px{'，会折两行' if w > SUB_MAX_W * 1.3 else ''}) {sb['text']}")
     # 输出
     tl = {'fps': FPS, 'total_frames': total, 'engine': ENGINE,
           'voice': VOICE if ENGINE == 'edge' else KOKORO_VOICE,
