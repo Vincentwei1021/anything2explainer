@@ -3,7 +3,8 @@
 输入 narration.txt：
   # CHAPTER <n> <标题>      章节标记（章节前自动加 chapter_gap 帧空白）
   ## gap <帧数>             在下一句前额外插入空白帧
-  一句话|按竖线分成字幕短句|每段 ≤16 字   → 竖线只切字幕，不影响朗读
+  一句话|按竖线分成字幕短句            → 竖线只切字幕，不影响朗读
+                                       每块预算：中文 ≤16 字 / 英文 ≤48 字符（超了会打 ⚠ 并自动缩字号）
 输出：
   public/assets/<slug>/audio.wav（48k 立体声 16bit；slug 读 src/config.ts）
   script/timeline.json / timeline.md
@@ -25,6 +26,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REM = ROOT
 _cfg = open(f'{ROOT}/src/config.ts', encoding='utf-8').read()
 SLUG = re.search(r"slug:\s*'([^']+)'", _cfg).group(1)
+_m = re.search(r"lang:\s*'(zh|en)'", _cfg)
+CFG_LANG = _m.group(1) if _m else 'zh'
 FPS = 30
 SR = 48000
 ENGINE = os.environ.get('TTS_ENGINE', 'auto')
@@ -74,11 +77,15 @@ def cache_path(text, ext):
     return f'{CACHE}/{hashlib.sha1(sig.encode()).hexdigest()[:16]}{ext}'
 
 
-def pick_engine(items):
-    """解说词里 CJK 占比 ≥20% → 中文（edge），否则按英文（kokoro）。"""
+def detect_lang(items):
+    """解说词里 CJK 占比 ≥20% → 'zh'，否则 'en'。"""
     txt = ''.join(it['raw'] for it in items if it['type'] == 'sent')
     cjk = sum(1 for c in txt if '一' <= c <= '鿿')
-    return 'edge' if cjk >= 0.2 * max(1, len(txt)) else 'kokoro'
+    return 'zh' if cjk >= 0.2 * max(1, len(txt)) else 'en'
+
+
+# 每块字幕的长度预算：超了 Subtitle.tsx 会自动缩字号兜底，但该改的是文案（见 narration-storyboard.md）
+SUB_BUDGET = {'zh': 16, 'en': 48}
 
 
 def write_wav(path, x, sr):
@@ -213,14 +220,18 @@ async def synth_sentence(chunks):
 async def main(narr):
     global ENGINE
     items = parse(narr)
+    lang = detect_lang(items)
     if ENGINE == 'auto':
-        ENGINE = pick_engine(items)
-        print(f'TTS_ENGINE=auto → {ENGINE}（按解说词语言选；有偏好请显式传 TTS_ENGINE=…）')
+        ENGINE = 'edge' if lang == 'zh' else 'kokoro'
+        print(f'解说词语言 {lang} → TTS_ENGINE={ENGINE}（有偏好请显式传 TTS_ENGINE=…）')
+    if lang != CFG_LANG:
+        print(f"⚠ src/config.ts 的 lang: '{CFG_LANG}' 与解说词语言 {lang} 不一致——改过来，"
+              f"否则标题压窄与居中基线会按错的语言算")
     t = LEAD / FPS
     audio_parts = []  # (start_sec, np.array)
     sentences = []; chapters = []
     sid = 0
-    total_chars = 0; speech_sec = 0.0
+    total_chars = 0; total_words = 0; speech_sec = 0.0
     for it in items:
         if it['type'] == 'chapter':
             t += CHAPTER_GAP / FPS
@@ -237,7 +248,8 @@ async def main(narr):
         sentences.append({'id': f'S{sid:02d}', 'chapter': it['chapter'], 'from': f0, 'to': f1, 'text': tts_text,
                           'subs': [{'from': int(round(a * FPS)) + 1, 'to': int(round(b * FPS)), 'text': c} for c, (a, b) in zip(chunks, subs)]})
         audio_parts.append((t, x))
-        total_chars += len(re.sub(r'[，。、！？：；“”（）,.!?:;()\-—…\s]', '', tts_text)); speech_sec += dur
+        total_chars += len(re.sub(r'[，。、！？：；“”（）,.!?:;()\-—…\s]', '', tts_text))
+        total_words += len(tts_text.split()); speech_sec += dur
         t += dur + GAP / FPS
     t += TAIL / FPS
     total = int(np.ceil(t * FPS))
@@ -261,16 +273,25 @@ async def main(narr):
     for i in range(len(all_subs) - 1):
         if all_subs[i]['to'] >= all_subs[i + 1]['from']:
             all_subs[i]['to'] = all_subs[i + 1]['from'] - 1
+    # 字幕块长度体检：超预算的块会被 Subtitle.tsx 缩字号兜底，但正确做法是回去切文案
+    over = [sb for sb in all_subs if len(sb['text']) > SUB_BUDGET[lang]]
+    if over:
+        unit = '字' if lang == 'zh' else '字符'
+        print(f'⚠ {len(over)}/{len(all_subs)} 块字幕超过每块 {SUB_BUDGET[lang]} {unit}（会自动缩字号，建议用 | 再切）：')
+        for sb in over[:5]:
+            print(f"    f{sb['from']} ({len(sb['text'])}{unit}) {sb['text']}")
     # 输出
     tl = {'fps': FPS, 'total_frames': total, 'engine': ENGINE,
           'voice': VOICE if ENGINE == 'edge' else KOKORO_VOICE,
           'rate': RATE if ENGINE == 'edge' else KOKORO_SPEED,
           'gap': GAP, 'chapter_gap': CHAPTER_GAP, 'lead': LEAD, 'tail': TAIL,
-          'chapters': chapters, 'sentences': sentences, 'chars': total_chars, 'speech_sec': round(speech_sec, 2)}
+          'lang': lang, 'chapters': chapters, 'sentences': sentences, 'chars': total_chars, 'words': total_words,
+          'speech_sec': round(speech_sec, 2)}
+    unit, cnt = ('字', total_chars) if lang == 'zh' else ('词', total_words)
     os.makedirs(f'{ROOT}/script', exist_ok=True)
     json.dump(tl, open(f'{ROOT}/script/timeline.json', 'w'), ensure_ascii=False, indent=1)
     with open(f'{ROOT}/script/timeline.md', 'w') as f:
-        f.write(f"# 时间轴（{ENGINE} · {tl['voice']} {tl['rate']}，共 {total} 帧 = {total/FPS:.1f}s，{total_chars} 字，语速 {total_chars/max(1e-6,speech_sec):.2f} 字/s）\n\n")
+        f.write(f"# 时间轴（{ENGINE} · {tl['voice']} {tl['rate']}，共 {total} 帧 = {total/FPS:.1f}s，{cnt} {unit}，语速 {cnt/max(1e-6,speech_sec):.2f} {unit}/s）\n\n")
         f.write('| 句 | 章 | 帧 from–to | 时长 | 文本（| 为字幕切分） |\n|---|---|---|---|---|\n')
         ci = {c['from']: c for c in chapters}
         for s in sentences:
@@ -303,7 +324,9 @@ async def main(narr):
         for s in sentences:
             f.write(f"  {{id: {lit(s['id'])}, chapter: {s['chapter']}, from: {s['from']}, to: {s['to']}, text: {lit(s['text'])}}},\n")
         f.write('];\n')
-    print(f'engine={ENGINE} voice={tl["voice"]} total_frames={total} ({total/FPS:.1f}s) sentences={len(sentences)} chars={total_chars} speech={speech_sec:.1f}s rate={total_chars/max(1e-6,speech_sec):.2f} chars/s')
+    print(f'lang={lang} engine={ENGINE} voice={tl["voice"]} total_frames={total} ({total/FPS:.1f}s) '
+          f'sentences={len(sentences)} {"chars" if lang == "zh" else "words"}={cnt} speech={speech_sec:.1f}s '
+          f'rate={cnt/max(1e-6,speech_sec):.2f} {unit}/s')
     for c in chapters:
         print(f"  chapter {c['n']} {c['title']} from f{c['from']}")
 

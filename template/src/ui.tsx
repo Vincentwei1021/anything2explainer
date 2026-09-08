@@ -1,5 +1,5 @@
 import React from 'react';
-import {FONT_HEAVY, FONT_TECH, FONT_MONO} from './common/lib';
+import {FONT_HEAVY, FONT_TECH, FONT_MONO, TEXT_DY} from './common/lib';
 import {GlitchIn, powOutRemain, BEZ_SCALE_IN, clamp01} from './common';
 
 /**
@@ -69,7 +69,7 @@ export type CTextProps = {
   dy?: number; scaleX?: number; italic?: boolean; opacity?: number; shadow?: string; style?: React.CSSProperties; children: React.ReactNode;
 };
 /** 以墨迹中心 (cx,cy) 摆放的单行文字（Noto CJK 墨迹比行盒中心低 3–7px → dy 默认 −2） */
-export const CText: React.FC<CTextProps> = ({cx, cy, size, weight = 700, family = FONT_HEAVY, color = WHITE, letterSpacing = 0, dy = -2, scaleX = 1, italic = false, opacity = 1, shadow, style, children}) => (
+export const CText: React.FC<CTextProps> = ({cx, cy, size, weight = 700, family = FONT_HEAVY, color = WHITE, letterSpacing = 0, dy = TEXT_DY, scaleX = 1, italic = false, opacity = 1, shadow, style, children}) => (
   <div style={{position: 'absolute', left: cx, top: cy + dy, transform: `translate(-50%,-50%) scaleX(${scaleX})`, whiteSpace: 'nowrap', fontFamily: family, fontWeight: weight, fontSize: size, fontStyle: italic ? 'italic' : 'normal', lineHeight: 1, color, letterSpacing, opacity, textShadow: shadow, ...style}}>
     {children}
   </div>

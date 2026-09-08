@@ -2,6 +2,7 @@ import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {FONT_HEAVY} from './lib';
 import {kf} from './easing';
+import {fitSize} from './textfit';
 import {TOTAL_FRAMES, CHAPTER_STARTS} from './timeline';
 
 /**
@@ -20,6 +21,7 @@ const CENTERS = Array.from({length: NCH}, (_, i) => Math.round(((i + 0.5) * 1280
 export const CHAPTERS: Array<{text: string; cx: number; from: number}> = CHAPTER_STARTS.map((c, i) => ({text: c.title, cx: CENTERS[i] ?? 640, from: c.from}));
 export const CHAPTER_HIGHLIGHT_END = TOTAL_FRAMES + 1;
 export const LABEL_SIZE = 24;
+export const LABEL_SLOT_W = Math.round(1280 / NCH) - 30; // 章名不得压到分隔线上（英文章名长，自动缩到 17px 兜底）
 export const LABEL_SCALE_Y = 0.9;
 export const LABEL_TOP = 690.5;
 export const LABEL_SKEW = -10;
@@ -54,7 +56,7 @@ export const ProgressBar: React.FC<{dimKf?: Array<[number, number]>; frame?: num
           style={{
             position: 'absolute', left: c.cx, top: LABEL_TOP - BAR_TOP,
             transform: `translateX(-50%) skewX(${LABEL_SKEW}deg) scaleY(${LABEL_SCALE_Y})`, transformOrigin: '50% 50%',
-            whiteSpace: 'nowrap', fontFamily: FONT_HEAVY, fontWeight: 900, fontSize: LABEL_SIZE, lineHeight: 1,
+            whiteSpace: 'nowrap', fontFamily: FONT_HEAVY, fontWeight: 900, fontSize: fitSize(c.text, LABEL_SLOT_W, LABEL_SIZE, 17), lineHeight: 1,
             color: i === ch ? 'rgba(255,255,255,1)' : `rgba(255,255,255,${LABEL_DIM_ALPHA})`,
           }}
         >

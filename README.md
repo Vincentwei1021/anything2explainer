@@ -7,7 +7,7 @@
 
 **English** | [简体中文](README_ZH.md)
 
-Give it a topic → get a **narrated Chinese explainer video** in a black-canvas motion-graphics style, with subtitles, chapter progress bar and a top HUD. You choose the length; 3–5 minutes is typical.
+Give it a topic → get a **narrated explainer video** (Chinese or English) in a black-canvas motion-graphics style, with subtitles, chapter progress bar and a top HUD. You choose the length and the language; 3–5 minutes is typical.
 Every frame is drawn in code (Remotion + React). No stock footage, no frames lifted from anyone else's video.
 
 This is a **Claude Code / Codex skill**. What ships here isn't a CLI — it's the whole method an agent needs to finish the film: a compilable template project, a primitives and lighting library, tooling for voiceover / storyboard / rendering / quantitative QC, written style and motion specs, a multi-agent division-of-labour protocol, and one complete reference film as the quality bar.
@@ -23,17 +23,18 @@ Its full paper trail lives in [`examples/rag/`](examples/rag/) (research → nar
 |---|---|
 | Frame / rate | 1280×720 @ 30fps, H.264 |
 | Length | your call (see table below); 2–8 minutes all work |
+| Language | Chinese or English (`lang` in `src/config.ts`); typography, subtitle budgets and TTS switch with it |
 | Look | black canvas + star dots + fog gradient; white line art + purple accents; ultra-bold headline type |
 | Persistent layers | 44px white-on-black-stroke subtitles, bottom chapter progress bar, top capsule HUD, optional pipeline rail |
 | Voiceover | Chinese: edge-tts `zh-CN-YunxiNeural` (Yunxi, male). English: kokoro-82m `am_liam` (Liam, male). Or bring your own TTS / finished audio |
 
 Length drives how much ground the film covers, and the size of the whole pipeline:
 
-| Length | Chinese chars | Lines / shots | Chapters | Build agents | Wall clock | Disk |
-|---|---|---|---|---|---|---|
-| 2–3 min | 700–950 | 24–32 | 3 | 4–6 | ≈1.5 h | ≈2 GB |
-| 3–5 min (reference tier) | 1200–1500 | 40–50 | 4 | 8 | ≈3 h | ≈2 GB |
-| 5–8 min | 1800–2400 | 60–80 | 5–6 | 10–14 | ≈4–5 h | ≈3 GB |
+| Length | Chinese chars | English words | Lines / shots | Chapters | Build agents | Wall clock | Disk |
+|---|---|---|---|---|---|---|---|
+| 2–3 min | 700–950 | 280–420 | 24–32 | 3 | 4–6 | ≈1.5 h | ≈2 GB |
+| 3–5 min (reference tier) | 1200–1500 | 420–700 | 40–50 | 4 | 8 | ≈3 h | ≈2 GB |
+| 5–8 min | 1800–2400 | 700–1150 | 60–80 | 5–6 | 10–14 | ≈4–5 h | ≈3 GB |
 
 ## Install
 
@@ -82,7 +83,7 @@ cd ~/work/my-video
 
 The run stops and waits for you at exactly four points instead of ploughing through (details in `SKILL.md`):
 
-1. **Length** — before the script is written. It decides the chapter count, line count, shot count and how many agents run in parallel, i.e. how much the film can actually cover.
+1. **Length and language** — before the script is written. Length decides the chapter count, line count, shot count and how many agents run in parallel, i.e. how much the film can actually cover; language flips `lang` in `src/config.ts`, which drives typography, subtitle budgets and the default voice.
 2. **Narration sign-off** — before voiceover. Once locked, frame numbers are hard-coded into every shot; changing one word re-times the whole film. This is the cheapest place to intervene.
 3. **Voiceover** — before TTS runs you get asked whether you have a preferred engine. If not, defaults apply (edge-tts Yunxi for Chinese, kokoro-82m Liam for English). You can also hand over finished audio and fill the per-line timeline yourself.
 4. **First 30 seconds** — only the first build group is done, then 30 seconds get rendered for you to judge the look. Fixing the style here costs one group; after the full render it costs every group.
@@ -128,7 +129,7 @@ Remotion itself has its own licence terms for companies — see [remotion.dev/li
 
 ## Known limits
 
-- Chinese-first. English narration works via kokoro, but the scripting rules and subtitle chunking are tuned for Chinese. One visual style only; changing it means editing `reference/style-guide.md` + `src/ui.tsx`.
+- Chinese and English are both supported (`lang: 'zh' | 'en'`), each with its own pacing, subtitle budget (16 chars / 48 characters per block) and default voice. The reference film is Chinese — an English film has no reference cut yet, though the visual grammar is language-neutral. One visual style only; changing it means editing `reference/style-guide.md` + `src/ui.tsx`.
 - Not for: replicating an existing video, talking-head presenter footage, or films that are mostly live action.
 - Once the narration is voiced, the words are frozen — shot code hard-codes frame numbers, so a rewrite re-times everything.
 - Parallel builds are demanding: several agents bundle Remotion at once, so keep ≥5 GB free; tmux panes are capped, so past ~12 you have to dispatch in waves.

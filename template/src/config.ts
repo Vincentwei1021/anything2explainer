@@ -6,7 +6,17 @@ export type HudEntry = {fromS: string; toS: string; text: string; tech?: string;
 export type RailSpec = {steps: string[]; switchS: string[]; fromS: string; toS: string};
 export const VIDEO = {
   slug: 'demo', // 素材目录 public/assets/<slug>/（配音 audio.wav 由 tts_build.py 写到这里）
-  title: {big: 'RAG', rest: '与知识库', en: 'Retrieval-Augmented Generation', tagline: '让大模型开卷考试'}, // 片头：big 用 Audiowide 宽体，rest 用 Noto 900
+  /**
+   * 片子语言：'zh' 中文（默认）｜'en' 英文。
+   * 影响 → 配音引擎（tts_build.py 的 TTS_ENGINE=auto 也会自己按解说词判语言）、标题/章节卡是否压窄（拉丁不压）、
+   * 居中文字的基线补偿（CJK −2 / 拉丁 0）、文案与字幕块长度预算（见 reference/narration-storyboard.md §5）。
+   */
+  lang: 'zh' as 'zh' | 'en',
+  /**
+   * 片头。中文片：big 用 Audiowide 宽体（缩写/英文词），rest 用 Noto 900（中文部分），en 是英文全称，tagline 一句话钩子。
+   * 英文片：rest 留空 ''（不显示），big 放主词/缩写，en 放全称或副标，tagline 一句话钩子。
+   */
+  title: {big: 'RAG', rest: '与知识库', en: 'Retrieval-Augmented Generation', tagline: '让大模型开卷考试'},
   /** 章节英文副标（顺序对应 narration 的 CHAPTER 1..n；章节卡从第 2 章起显示） */
   chapterTech: ['Why RAG', 'Indexing', 'Retrieval & Generation', 'Evaluation & Advanced RAG'],
   /** 顶部 HUD 胶囊（当前小节名）：按句 id 区间；相邻条目之间自动无空档；跨章节卡自动淡出。 */
