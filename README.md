@@ -7,15 +7,21 @@
 
 **English** | [简体中文](README_ZH.md)
 
-Give it a topic → get a **narrated explainer video** (Chinese or English) in a black-canvas motion-graphics style, with subtitles, chapter progress bar and a top HUD. You choose the length and the language; 3–5 minutes is typical.
-Every frame is drawn in code (Remotion + React). No stock footage, no frames lifted from anyone else's video.
+**Topic in, narrated explainer video out.** anything2explainer is a [Claude Code](https://claude.com/claude-code) / [Codex](https://openai.com/codex) skill that turns any topic into a black-canvas motion-graphics explainer video with TTS voiceover, subtitles and a chapter progress bar, in Chinese or English. Every frame is drawn in code with [Remotion](https://remotion.dev) (React + TypeScript). No stock footage, no generative video model, no frames lifted from anyone else's work.
 
-This is a **Claude Code / Codex skill**. What ships here isn't a CLI — it's the whole method an agent needs to finish the film: a compilable template project, a primitives and lighting library, tooling for voiceover / storyboard / rendering / quantitative QC, written style and motion specs, a multi-agent division-of-labour protocol, and one complete reference film as the quality bar.
+It is not a CLI. What ships here is the whole method an AI coding agent needs to finish the film: a compilable Remotion template, a primitives and lighting library, tooling for voiceover / storyboard / rendering / quantitative QC, written style and motion specs, a multi-agent division-of-labour protocol, and one complete reference film as the quality bar.
 
-![Contact sheet of the first 30 seconds of the reference film](examples/rag/frames/overview_1.jpg)
+![Contact sheet of the first 30 seconds of the reference film "RAG and Knowledge Bases": black starfield canvas, white line-art diagrams with purple highlights, ultra-bold headline type, 44px subtitles and a chapter progress bar](examples/rag/frames/overview_1.jpg)
 
 Reference film *RAG and Knowledge Bases*: 4′35″, 44 narration lines, 44 shots, 8 build agents in parallel for 40 minutes, two QC rounds.
 Its full paper trail lives in [`examples/rag/`](examples/rag/) (research → narration → storyboard → shot source → QC reports → delivery notes); rendered frames are in [`examples/rag/frames/`](examples/rag/frames/).
+
+## What it does
+
+- **Input**: a topic ("explain vector databases"), or an article / document you want turned into a video. You also pick the length and the language.
+- **Output**: a 1280×720 H.264 MP4 with synchronized voiceover, word-boundary-aligned subtitles, chapter cards, a top HUD and a bottom chapter progress bar, plus the full paper trail (research doc with sources, narration, storyboard, per-shot source code, QC reports).
+- **How**: the agent researches the topic with sources, writes the narration, generates the voiceover and frame-accurate timeline, storyboards every shot, then dispatches parallel build agents that write one Remotion component per shot. QC agents review the rendered frames against written criteria before delivery.
+- **Time**: roughly 1.5 to 5 hours of wall clock depending on length, most of it agents building shots in parallel. You are consulted at exactly four checkpoints.
 
 ## Output spec
 
@@ -61,12 +67,23 @@ pip install kokoro soundfile && brew install espeak-ng
 
 ## Usage
 
-In Claude Code, just say what you want — the skill triggers itself:
+In Claude Code or Codex, just say what you want. The skill triggers itself:
+
+> Make me an explainer video about vector databases.
 
 > 讲一下向量数据库，做成一条讲解视频
-> (Make me an explainer video about vector databases)
 
-It then walks the 9 stages in `SKILL.md`: scaffold → research (1 agent) → narration & timeline → storyboard → overlays & primitives → pilot (1 agent + a 30-second cut) → parallel build (the remaining groups) → render → QC & fixes → delivery.
+It then walks the 9 stages in `SKILL.md`:
+
+1. **Scaffold** the Remotion project from the template.
+2. **Research** (1 agent): a sourced research doc with a list of numbers and analogies, every item with a URL.
+3. **Narration & timeline**: the script, then TTS voiceover with per-word boundaries turned into a frame-accurate timeline and subtitle table.
+4. **Storyboard**: one line per shot with frame range, beat, visuals, motion, hero element and lighting.
+5. **Overlays & primitives**: title, chapter cards, HUD, pipeline rail, plus 2–5 topic-specific icons.
+6. **Pilot** (1 agent): the first shot group, then a 30-second cut for you to judge the look.
+7. **Parallel build**: the remaining groups, 5–7 shots per agent, each writing pure-function Remotion components.
+8. **Render** the full film and run quantitative frame metrics.
+9. **QC & fixes**: one QC agent per chapter, fix agents per group, re-verification, then delivery notes.
 
 You can also drive the template by hand:
 
@@ -83,10 +100,45 @@ cd ~/work/my-video
 
 The run stops and waits for you at exactly four points instead of ploughing through (details in `SKILL.md`):
 
-1. **Length and language** — before the script is written. Length decides the chapter count, line count, shot count and how many agents run in parallel, i.e. how much the film can actually cover; language flips `lang` in `src/config.ts`, which drives typography, subtitle budgets and the default voice.
-2. **Narration sign-off** — before voiceover. Once locked, frame numbers are hard-coded into every shot; changing one word re-times the whole film. This is the cheapest place to intervene.
-3. **Voiceover** — before TTS runs you get asked whether you have a preferred engine. If not, defaults apply (edge-tts Yunxi for Chinese, kokoro-82m Liam for English). You can also hand over finished audio and fill the per-line timeline yourself.
-4. **First 30 seconds** — only the first build group is done, then 30 seconds get rendered for you to judge the look. Fixing the style here costs one group; after the full render it costs every group.
+1. **Length and language**: before the script is written. Length decides the chapter count, line count, shot count and how many agents run in parallel, i.e. how much the film can actually cover; language flips `lang` in `src/config.ts`, which drives typography, subtitle budgets and the default voice.
+2. **Narration sign-off**: before voiceover. Once locked, frame numbers are hard-coded into every shot; changing one word re-times the whole film. This is the cheapest place to intervene.
+3. **Voiceover**: before TTS runs you get asked whether you have a preferred engine. If not, defaults apply (edge-tts Yunxi for Chinese, kokoro-82m Liam for English). You can also hand over finished audio and fill the per-line timeline yourself.
+4. **First 30 seconds**: only the first build group is done, then 30 seconds get rendered for you to judge the look. Fixing the style here costs one group; after the full render it costs every group.
+
+## How it compares
+
+| Tool class | What it produces | Where anything2explainer differs |
+|---|---|---|
+| Generative video models (Sora, Veo, Runway) | Footage synthesized from a prompt | Deterministic code, not pixels. Every number on screen traces to a source URL, and any frame can be fixed by editing one shot file |
+| Avatar / presenter tools (HeyGen, Synthesia) | A digital presenter reading a script | No presenter. Motion-graphics diagrams that show the mechanism, with the narration driving the visuals |
+| Remotion or Motion Canvas by hand | A programmable video canvas | Ships the method on top of the canvas: research → narration → storyboard → parallel build → QC, with style specs, motion vocabulary and a reference film to match |
+| Manim | Python mathematical animations | An agent-driven end-to-end pipeline with TTS-aligned subtitles, chapters and QC; React / TypeScript rather than Python |
+
+## FAQ
+
+**Which AI coding agents does it work with?**
+It is written for Claude Code and Codex, and those two are what it has been run with. The skill itself is plain Markdown plus a Remotion project, so any agent that reads `SKILL.md`-style skill folders and can run shell commands should be able to follow it.
+
+**Does it need a GPU?**
+No. Remotion renders through headless Chromium on the CPU. The Chinese default voice (edge-tts) is a cloud call to a Microsoft endpoint; the English default (kokoro-82m) is an 82M-parameter model that runs locally on CPU.
+
+**Can I use my own voice or a different TTS?**
+Yes. Put the finished audio at `public/assets/<slug>/audio.wav` and fill `src/common/timeline.ts` and `subs.ts` by hand (format documented at the top of `tts_build.py`). Everything downstream is unchanged.
+
+**Can I change the visual style?**
+There is one visual style, on purpose. To change it, edit `reference/style-guide.md` and `src/ui.tsx`; the shot code only uses those primitives.
+
+**Are the renders reproducible?**
+Yes. Every animation is a pure function of the frame number with seeded randomness, and text fitting is computed rather than measured in the DOM, so re-rendering produces identical frames.
+
+**Can I use it commercially?**
+The toolkit is licensed under PolyForm Noncommercial: free for noncommercial use, commercial use requires prior authorization from the author. The videos you make with it are yours. See [License](#license).
+
+**Does it do vertical (9:16) video?**
+Not currently. The template and every safe-area rule assume 1280×720 landscape.
+
+**Which languages?**
+Chinese and English. Each has its own pacing model, subtitle budget and default voice. The reference film is Chinese; an English film has no reference cut yet, though the visual grammar is language-neutral.
 
 ## Repo layout
 
@@ -107,7 +159,7 @@ template/                 the compilable Remotion 4 project (copy it with script
   src/ui.tsx  src/fx.tsx    primitives and palette / light, depth and camera primitives
   src/overlay/              title, chapter cards, HUD, pipeline rail, ending
   scripts/                  voiceover, storyboard, stills, test render, 30s preview, full render, QC metrics
-  public/fonts/             four fonts + their OFL licence
+  public/fonts/             four fonts + their OFL license
 examples/rag/             the reference film's full paper trail and rendered frames
 examples/contrast/        6 bad/good frame pairs — the yardstick for composition and light
 ```
@@ -118,14 +170,14 @@ The visual language and the quality bar are inspired by the Douyin creator **@�
 
 ## Originality
 
-- **Every frame is drawn in code.** No frames or clips from existing videos. Optional live-action B-roll must come from royalty-free sources and be logged in a MANIFEST (sha256 / source URL / licence / usage).
+- **Every frame is drawn in code.** No frames or clips from existing videos. Optional live-action B-roll must come from royalty-free sources and be logged in a MANIFEST (sha256 / source URL / license / usage).
 - **Every fact is sourced.** Every number, year, organisation and English term shown on screen must trace back to a source URL in that film's research document. Anything unverified stays off the screen and out of the narration.
 
-## Licence
+## License
 
 The toolkit: [PolyForm Noncommercial 1.0.0](LICENSE) — free for noncommercial use; commercial use requires prior authorization from the author. **Videos you make with it are yours.**
 The four bundled fonts (Noto Sans SC / Orbitron / Exo 2 / Audiowide) are licensed separately under SIL OFL 1.1; see [`template/public/fonts/LICENSE.md`](template/public/fonts/LICENSE.md).
-Remotion itself has its own licence terms for companies — see [remotion.dev/license](https://remotion.dev/license).
+Remotion itself has its own license terms for companies — see [remotion.dev/license](https://remotion.dev/license).
 
 ## Known limits
 

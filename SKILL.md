@@ -1,6 +1,6 @@
 ---
 name: anything2explainer
-description: 给一个主题，产出一条黑底星空 MG 风格、有配音字幕章节进度条的科普讲解视频（中文或英文；Remotion 代码动画；时长由用户定，常用 3–5 分钟）。内含可编译模板、图元库、配音/分镜/渲染工具、风格与动效规范、多 agent 分工协议与 QC 判据，以及一条完整样片（《RAG 与知识库》）作为质量标尺。
+description: 给一个主题，产出一条黑底星空 MG 风格、有配音字幕章节进度条的科普讲解视频（中文或英文；Remotion 代码动画；时长由用户定，常用 3–5 分钟）。内含可编译模板、图元库、配音/分镜/渲染工具、风格与动效规范、多 agent 分工协议与 QC 判据，以及一条完整样片（《RAG 与知识库》）作为质量标尺。Turn any topic into a narrated motion-graphics explainer video in Chinese or English, with a black starfield canvas, TTS voiceover, subtitles and a chapter progress bar, every frame drawn in code with Remotion. Use when the user asks for an explainer, educational or science-communication video about a topic, or wants an article or document turned into a video.
 ---
 
 # anything2explainer
