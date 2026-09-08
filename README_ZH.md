@@ -1,7 +1,7 @@
 # anything2explainer
 
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-skill-D97757?logo=anthropic&logoColor=white)](https://claude.com/claude-code)
-[![Codex](https://img.shields.io/badge/Codex-skill-412991?logo=openai&logoColor=white)](https://openai.com/codex)
+[![Codex](https://img.shields.io/badge/Codex-skill-000000)](https://openai.com/codex)
 [![Remotion](https://img.shields.io/badge/Remotion-4.0-0B84F3)](https://remotion.dev)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-informational)](LICENSE)
 
