@@ -39,6 +39,7 @@ KOKORO_LANG = os.environ.get('KOKORO_LANG', 'a')       # a=American English, b=B
 KOKORO_SPEED = float(os.environ.get('KOKORO_SPEED', 1.0))
 KOKORO_SR = 24000
 CHUNK_PAD = float(os.environ.get('CHUNK_PAD', 0.06))  # 无词边界引擎：块间静音秒
+EDGE_RETRIES = int(os.environ.get('EDGE_RETRIES', 4))  # edge-tts 空音频重试次数
 GAP = int(os.environ.get('GAP', 10))          # 句间空白帧
 CHAPTER_GAP = int(os.environ.get('CHAPTER_GAP', 45))  # 章节前空白帧
 LEAD = int(os.environ.get('LEAD', 40))        # 片头静音帧
@@ -131,19 +132,34 @@ async def synth_edge(text):
     mp3 = cache_path(text, '.mp3'); js = cache_path(text, '.json')
     if os.path.exists(mp3) and os.path.exists(js):
         return mp3, json.load(open(js))
-    comm = edge_tts.Communicate(text, VOICE, rate=RATE)
+    # 微软端点会间歇性返回空音频（NoAudioReceived）：50 句的片子里随机一两句会中招，
+    # 同一句重试多半就过。不重试的话整片会在随机一句上中断。
     audio = bytearray(); words = []
-    async for ch in comm.stream():
-        if ch['type'] == 'audio':
-            audio += ch['data']
-        elif ch['type'] == 'WordBoundary':
-            words.append({'t': ch['offset'] / 1e7, 'd': ch['duration'] / 1e7, 'text': ch['text']})
+    for attempt in range(EDGE_RETRIES):
+        try:
+            comm = edge_tts.Communicate(text, VOICE, rate=RATE)
+            audio = bytearray(); words = []
+            async for ch in comm.stream():
+                if ch['type'] == 'audio':
+                    audio += ch['data']
+                elif ch['type'] == 'WordBoundary':
+                    words.append({'t': ch['offset'] / 1e7, 'd': ch['duration'] / 1e7, 'text': ch['text']})
+            if audio:
+                break
+        except Exception as e:
+            if attempt == EDGE_RETRIES - 1:
+                raise
+            print(f'  ⚠ edge-tts 第 {attempt + 1} 次失败（{type(e).__name__}），重试：{text[:16]}…')
+        await asyncio.sleep(1.5 * (attempt + 1))
+    if not audio:
+        raise SystemExit(f'edge-tts 重试 {EDGE_RETRIES} 次仍未拿到音频：{text[:30]}…')
     open(mp3, 'wb').write(audio)
     json.dump(words, open(js, 'w'), ensure_ascii=False)
     return mp3, words
 
 
 _kokoro = None
+_EDGE_NO_WB = None   # None=未探测 / True=端点不返回 WordBoundary → 退回逐块合成
 
 
 def synth_kokoro(text):
@@ -229,10 +245,29 @@ async def synth_sentence(chunks, sep=''):
     kokoro：无词边界 → 逐字幕块分别合成再拼接，块起点因此是精确的，代价是块界断句略生硬。"""
     text = sep.join(chunks)
     if ENGINE == 'edge':
-        au, words = await synth_edge(text)
-        x, lead_cut = trim_edges(decode(au))
-        dur = len(x) / SR
-        return x, chunk_starts(text, chunks, words, lead_cut, dur, sep), dur
+        global _EDGE_NO_WB
+        if _EDGE_NO_WB is None:                      # 首句探一次：端点还给不给词级边界
+            _, _probe = await synth_edge(text)
+            _EDGE_NO_WB = not _probe
+            if _EDGE_NO_WB:
+                print('⚠ 端点未返回 WordBoundary → 改用逐字幕块分别合成'
+                      '（块起点仍精确，代价是块界断句略硬；CHUNK_PAD 调块间静音）')
+        if not _EDGE_NO_WB:
+            au, words = await synth_edge(text)
+            x, lead_cut = trim_edges(decode(au))
+            dur = len(x) / SR
+            return x, chunk_starts(text, chunks, words, lead_cut, dur, sep), dur
+        pad = np.zeros(int(CHUNK_PAD * SR), dtype=np.float32)
+        parts = []; starts = []; pos = 0.0
+        for i, c in enumerate(chunks):
+            aui, _ = await synth_edge(c)
+            xi, _ = trim_edges(decode(aui))
+            if i:
+                parts.append(pad); pos += len(pad) / SR
+            starts.append(pos)
+            parts.append(xi); pos += len(xi) / SR
+        x = np.concatenate(parts) if parts else np.zeros(0, dtype=np.float32)
+        return x, starts, len(x) / SR
     pad = np.zeros(int(CHUNK_PAD * SR), dtype=np.float32)
     parts = []; starts = []; pos = 0.0
     for i, c in enumerate(chunks):
