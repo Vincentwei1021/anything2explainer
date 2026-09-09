@@ -11,17 +11,22 @@
 
 It is not a CLI. What ships here is the whole method an AI coding agent needs to finish the film: a compilable Remotion template, a primitives and lighting library, tooling for voiceover / storyboard / rendering / quantitative QC, written style and motion specs, a multi-agent division-of-labour protocol, and one complete reference film as the quality bar.
 
+**English cut** — *RAG & Knowledge Bases*, 5′02″, 44 lines / 785 words, voiced by kokoro-82m `am_liam` at natural speed:
+
 https://github.com/user-attachments/assets/e2771c68-a28c-4459-ac5a-a5b685181eeb
 
-Reference film *RAG and Knowledge Bases*: 4′35″, 44 narration lines, 44 shots, 8 build agents in parallel for 40 minutes, two QC rounds.
-Its full paper trail lives in [`examples/rag/`](examples/rag/) (research → narration → storyboard → shot source → QC reports → delivery notes); rendered frames are in [`examples/rag/frames/`](examples/rag/frames/).
+**Chinese cut** — *RAG 与知识库* v2, 4′54″, 44 lines / 1490 characters, dot-field backdrop (`bg: 'dots'`), voiced through the bring-your-own-TTS path (Volcengine TTS 2.0 + forced alignment):
+
+https://github.com/user-attachments/assets/5c213990-cbba-439e-8371-fbb3aa348e05
+
+Both cuts share one storyboard and 44 shots; the English cut re-times every shot to the English voiceover. The full paper trail of the original Chinese cut (4′35″, star-field backdrop, 8 build agents in parallel for 40 minutes, two QC rounds) lives in [`examples/rag/`](examples/rag/) (research → narration → storyboard → shot source → QC reports → delivery notes); rendered frames are in [`examples/rag/frames/`](examples/rag/frames/).
 
 ## What it does
 
 - **Input**: a topic ("explain vector databases"), or an article / document you want turned into a video. You also pick the length and the language.
 - **Output**: a 1280×720 H.264 MP4 with synchronized voiceover, word-boundary-aligned subtitles, chapter cards, a top HUD and a bottom chapter progress bar, plus the full paper trail (research doc with sources, narration, storyboard, per-shot source code, QC reports).
 - **How**: the agent researches the topic with sources, writes the narration, generates the voiceover and frame-accurate timeline, storyboards every shot, then dispatches parallel build agents that write one Remotion component per shot. QC agents review the rendered frames against written criteria before delivery.
-- **Time**: roughly 1.5 to 5 hours of wall clock depending on length, most of it agents building shots in parallel. You are consulted at exactly four checkpoints.
+- **Time**: roughly 1 to 3 hours of wall clock depending on length, most of it agents building shots in parallel. You are consulted at exactly four checkpoints.
 
 ## Output spec
 
@@ -30,17 +35,19 @@ Its full paper trail lives in [`examples/rag/`](examples/rag/) (research → nar
 | Frame / rate | 1280×720 @ 30fps, H.264 |
 | Length | your call (see table below); 2–8 minutes all work |
 | Language | Chinese or English (`lang` in `src/config.ts`); typography, subtitle budgets and TTS switch with it |
-| Look | black canvas + star dots + fog gradient; white line art + purple accents; ultra-bold headline type |
+| Look | black canvas with one of two backdrops, star field + fog gradient or dot-field wave (`bg` in `src/config.ts`; the dot-field wave is ported from video-talkcraft); white line art + purple accents; ultra-bold headline type |
 | Persistent layers | 44px white-on-black-stroke subtitles, bottom chapter progress bar, top capsule HUD, optional pipeline rail |
 | Voiceover | Chinese: edge-tts `zh-CN-YunxiNeural` (Yunxi, male). English: kokoro-82m `am_liam` (Liam, male). Or bring your own TTS / finished audio |
 
 Length drives how much ground the film covers, and the size of the whole pipeline:
 
-| Length | Chinese chars | English words | Lines / shots | Chapters | Build agents | Wall clock | Disk |
-|---|---|---|---|---|---|---|---|
-| 2–3 min | 700–950 | 280–420 | 24–32 | 3 | 4–6 | ≈1.5 h | ≈2 GB |
-| 3–5 min (reference tier) | 1200–1500 | 420–700 | 40–50 | 4 | 8 | ≈3 h | ≈2 GB |
-| 5–8 min | 1800–2400 | 700–1150 | 60–80 | 5–6 | 10–14 | ≈4–5 h | ≈3 GB |
+| Length | Chinese chars | English words | Lines / shots | Build agents | Wall clock | Disk |
+|---|---|---|---|---|---|---|
+| 2–3 min | 700–950 | 280–420 | 24–32 | 4–6 | ≈1 h | ≈2 GB |
+| 3–5 min (reference tier) | 1200–1500 | 420–700 | 40–50 | 8 | ≈2 h | ≈2 GB |
+| 5–8 min | 1800–2400 | 700–1150 | 60–80 | 10–14 | ≈2–3 h | ≈3 GB |
+
+Chapter count is not tied to length. One chapter that goes deep or several short ones both work; the progress bar splits evenly across however many chapters the narration declares.
 
 ## Install
 
@@ -100,7 +107,7 @@ cd ~/work/my-video
 
 The run stops and waits for you at exactly four points instead of ploughing through (details in `SKILL.md`):
 
-1. **Length and language**: before the script is written. Length decides the chapter count, line count, shot count and how many agents run in parallel, i.e. how much the film can actually cover; language flips `lang` in `src/config.ts`, which drives typography, subtitle budgets and the default voice.
+1. **Length and language**: before the script is written. Length decides the line count, shot count and how many agents run in parallel, i.e. how much the film can actually cover; language flips `lang` in `src/config.ts`, which drives typography, subtitle budgets and the default voice.
 2. **Narration sign-off**: before voiceover. Once locked, frame numbers are hard-coded into every shot; changing one word re-times the whole film. This is the cheapest place to intervene.
 3. **Voiceover**: before TTS runs you get asked whether you have a preferred engine. If not, defaults apply (edge-tts Yunxi for Chinese, kokoro-82m Liam for English). You can also hand over finished audio and fill the per-line timeline yourself.
 4. **First 30 seconds**: only the first build group is done, then 30 seconds get rendered for you to judge the look. Fixing the style here costs one group; after the full render it costs every group.
@@ -126,7 +133,7 @@ No. Remotion renders through headless Chromium on the CPU. The Chinese default v
 Yes. Put the finished audio at `public/assets/<slug>/audio.wav` and fill `src/common/timeline.ts` and `subs.ts` by hand (format documented at the top of `tts_build.py`). Everything downstream is unchanged.
 
 **Can I change the visual style?**
-There is one visual style, on purpose. To change it, edit `reference/style-guide.md` and `src/ui.tsx`; the shot code only uses those primitives.
+There is one visual style, on purpose, with a single switch: the backdrop, `bg: 'stars' | 'dots'` in `src/config.ts`. To change anything else, edit `reference/style-guide.md` and `src/ui.tsx`; the shot code only uses those primitives.
 
 **Are the renders reproducible?**
 Yes. Every animation is a pure function of the frame number with seeded randomness, and text fitting is computed rather than measured in the DOM, so re-rendering produces identical frames.
@@ -138,7 +145,7 @@ The toolkit is licensed under PolyForm Noncommercial: free for noncommercial use
 Not currently. The template and every safe-area rule assume 1280×720 landscape.
 
 **Which languages?**
-Chinese and English. Each has its own pacing model, subtitle budget and default voice. The reference film is Chinese; an English film has no reference cut yet, though the visual grammar is language-neutral.
+Chinese and English. Each has its own pacing model, subtitle budget and default voice. Both cuts are embedded at the top of this page; the written paper trail in `examples/rag/` is from the Chinese cut.
 
 ## Repo layout
 
@@ -155,7 +162,7 @@ reference/                specs written for the main session and the agents
   prompts.md                six prompt templates: research / build / QC / fix / recheck / final pass
   lessons.md                every trap hit across three films, with root causes
 template/                 the compilable Remotion 4 project (copy it with scripts/new_project.sh)
-  src/common/               fog, star field, glitch, easings, subtitles, progress bar, footage layer
+  src/common/               fog, star field, dot-field wave, glitch, easings, subtitles, progress bar, footage layer
   src/ui.tsx  src/fx.tsx    primitives and palette / light, depth and camera primitives
   src/overlay/              title, chapter cards, HUD, pipeline rail, ending
   scripts/                  voiceover, storyboard, stills, test render, 30s preview, full render, QC metrics
@@ -181,7 +188,7 @@ Remotion itself has its own license terms for companies — see [remotion.dev/li
 
 ## Known limits
 
-- Chinese and English are both supported (`lang: 'zh' | 'en'`), each with its own pacing, subtitle budget (16 chars / 48 characters per block) and default voice. The reference film is Chinese — an English film has no reference cut yet, though the visual grammar is language-neutral. One visual style only; changing it means editing `reference/style-guide.md` + `src/ui.tsx`.
+- Chinese and English are both supported (`lang: 'zh' | 'en'`), each with its own pacing, subtitle budget (16 chars / 48 characters per block) and default voice. Both cuts are embedded above; the paper trail in `examples/rag/` is from the Chinese cut. One visual style with two backdrops (`bg: 'stars' | 'dots'`); changing anything else means editing `reference/style-guide.md` + `src/ui.tsx`.
 - Not for: replicating an existing video, talking-head presenter footage, or films that are mostly live action.
 - Once the narration is voiced, the words are frozen — shot code hard-codes frame numbers, so a rewrite re-times everything.
 - Parallel builds are demanding: several agents bundle Remotion at once, so keep ≥5 GB free; tmux panes are capped, so past ~12 you have to dispatch in waves.

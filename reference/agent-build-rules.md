@@ -12,11 +12,11 @@
 
 ## 1. 工程约定
 - 帧号 **N = useCurrentFrame() + F0**（F0 = 该镜头 ShotDef.from；1 起含端点）。分镜表、timeline 里的帧号都是 N。
-- 构建组 G1–Gn（每章两组，各 5–7 个镜头；组数按片长，样片档 8 组；覆盖层（`src/overlay/`，片头/章节卡/顶部 HUD/流程轨/片尾）由主会话维护，构建组不要画这些）。每个镜头一个组件文件 `src/shots/Gn/SCxx.tsx`；`src/shots/Gn/index.ts` 导出 `SHOTS_Gn: ShotDef[]`（{id,from,to,Comp,layer?}，数组顺序即层序）与 `BG_Gn: BgSpec[]`（星点/雾底覆写，见下）。**只改 `src/shots/Gn/**`**，不改 Main/Root/common/其他组；共用层要改的写进 `src/shots/Gn/BUILD_NOTES.md` 并在最终回复里提出。
+- 构建组 G1–Gn（每章两组，各 5–7 个镜头；组数按片长，样片档 8 组；覆盖层（`src/overlay/`，片头/章节卡/顶部 HUD/流程轨/片尾）由主会话维护，构建组不要画这些）。每个镜头一个组件文件 `src/shots/Gn/SCxx.tsx`；`src/shots/Gn/index.ts` 导出 `SHOTS_Gn: ShotDef[]`（{id,from,to,Comp,layer?}，数组顺序即层序）与 `BG_Gn: BgSpec[]`（幕底覆写，见下）。**只改 `src/shots/Gn/**`**，不改 Main/Root/common/其他组；共用层要改的写进 `src/shots/Gn/BUILD_NOTES.md` 并在最终回复里提出。
 - 本片图元库 `src/ui.tsx`（从 `'../../ui'` 导入）：调色板 PURPLE/PURPLE_LIGHT/PURPLE_TECH/ORANGE/CORAL/RED_DEEP/GREEN/GREY/GREY_LINE/WHITE、GLOW_*/BLOOM/TEXT_GLOW；`CText/TechText/MonoText/Box/Pill/TagBlock/Svg/LineArrow/ArrowH/Check/Cross/DocIcon/DBIcon/ChunkCard/LLMIcon/TopCapsule/Counter`；动效小工具 `fadeIn/fadeOut/slideUp/scaleIn/exitAccel/exitFade/stagger/abs`。**优先用这些**，保证各组画风一致；缺什么就在自己组目录里补，不改 ui.tsx（要加进 ui.tsx 的写进 BUILD_NOTES）。
 - 光效 / 高光时刻 / 纵深 / 运镜图元 `src/fx.tsx`（从 `'../../fx'` 导入）：`LightBar/LightSweep/StageLine/GhostText/ghostOpacity/HaloRing/HeroGlow/BigNumber/countTo/Sparkle/GradBall/TiltPlane/CameraRig/camAt/SET_PIECE/setPiece`。
 - 共用层从 `'../../common'` 导入：`GlitchIn`（12 帧 glitch 入场）、`kf/stepKf/slideIn/powOutRemain/expOut/powIn/easeInOutPow/cubicBezier/BEZ_SCALE_IN/emphasisPulse/rnd`、`StarField/Fog`、`FONT_HEAVY/FONT_TECH/FONT_WIDE/FONT_ORB/FONT_MONO/FONT_SERIF`、`DirBlur`、`SubtitleLine/strokeShadow`（描边字样式复用，不是画字幕）、`TOTAL_FRAMES/CHAPTER_STARTS/SENTENCES`、`FootageTrack`（可选实拍）。字体已由 Main 的 `Fonts` 全局加载（Noto Sans SC 100–900、Exo 2 Italic、Audiowide、Orbitron），组件内**不要**再 delayRender 加载字体。
-- 全片常驻层由 Main 渲染：黑底 < 雾底 Fog(y415→720 #000→#212121) < 星点 StarField < 你的镜头 < 进度条(y687–720 半透明) < `layer:'aboveBar'` 镜头 < 字幕。**镜头组件不要画不透明黑底**（会盖掉雾底和星点）；确需纯黑/无星（如片头第一帧、强调黑场）用 `BG_Gn: [{from,to,fog:false,stars:'none'}]`。
+- 全片常驻层由 Main 渲染：黑底 < 幕底（`config.bg`：雾底 Fog(y415→720 #000→#212121) + 星点 StarField，或点阵波 DotFieldBg）< 你的镜头 < 进度条(y687–720 半透明) < `layer:'aboveBar'` 镜头 < 字幕。**镜头组件不要画不透明黑底**（会盖掉幕底）；确需纯黑/无星（如片头第一帧、强调黑场）用 `BG_Gn: [{from,to,fog:false,stars:'none'}]`。
 - 随机只用 `rnd(...seeds)`（确定性），禁 `Math.random`。所有动画都是 N 的纯函数（不要用 useState/useEffect 做动画）。
 
 ## 2. 版面安全区
@@ -29,7 +29,7 @@
 - **主角与尺寸**：每镜头一个主角，高度 ≥170px 或大字 ≥96px，在第 1–2 个节拍入场；三档尺寸（主角 ≥170 / 配角 60–110 / 标签 22–30）；内容区最大物体 <110px 持续 >45 帧是缺陷。时间轴 / 公式 / 表格这类细小题材必须配主角（大数字、放大的当前项）。
 - **光跟主角**：主角必带 `GLOW_PURPLE` / `HeroGlow` / `HaloRing` 或大字紫硬投影；胶囊、流程轨、标签、表格默认不发光，当前重点 ≤1 处 `GLOW_PURPLE_S`；离场先灭光再淡出。
 - **高光时刻**：分镜表「全局约束 §高光时刻清单」里的镜头按 composition-and-light.md §3 编排（`LightSweep` → `StageLine` → `GhostText` → 白闪 + `GlitchIn` → 脉冲 → 副标 → 拆词），≥90 帧；不要用「胶囊 + 图标 + 一行字」应付。
-- **背景只有星点**：不撒小图标做氛围；表现「多」用 ≥6px 方点阵列，按节拍点亮。
+- **背景只有幕底**（星点或点阵波）：不撒小图标做氛围；表现「多」用 ≥6px 方点阵列，按节拍点亮。
 - **纵深**：空间 / 层级 / 索引用 `TiltPlane` 叠层，筛选用 `Trap`，旋转只给齿轮表盘转盘。
 - 入场三选一：GlitchIn 12 帧模板（标题/胶囊/关键词）、自下滑入 `y = yEnd + Δ·powOutRemain(n,22,2.5)`（Δ≈300，图形/卡片）、21 帧缩放入场 `s = s0+(1−s0)·BEZ_SCALE_IN(n/21)`（图标）。列表/卡片阵列按 **2 帧错峰**。
 - 线条/箭头 draw-on：SVG `clipPath` rect 或 stroke-dasharray，箭头**自根部长出**，16–28 帧。

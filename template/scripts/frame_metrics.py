@@ -19,7 +19,37 @@ ap.add_argument('--shots', default='')
 ap.add_argument('--step', type=int, default=4)
 ap.add_argument('--out', default='')
 ap.add_argument('--rail-top', type=int, default=100, help='内容区上界（有流程轨的镜头可传 175）')
+ap.add_argument('--bg', default='auto', help="幕底方案 stars|dots|auto（auto 读 src/config.ts 的 bg）。dots 时按 DotFieldBg 的网格坐标把点阵抠掉再统计，否则波前亮点会被数成背景碎屑")
 a = ap.parse_args()
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+def cfg_bg():
+    try:
+        m = re.search(r"bg:\s*'(stars|dots)'", open(f'{ROOT}/src/config.ts', encoding='utf-8').read())
+        return m.group(1) if m else 'stars'
+    except OSError:
+        return 'stars'
+BG = cfg_bg() if a.bg == 'auto' else a.bg
+
+def dot_mask(W=1280, H=720, r=5):
+    """点阵波幕底的屏幕坐标掩膜（与 src/common/DotFieldBg.tsx 同一组常量：设计坐标 960×540、步距 36、起点 (24,18)、等比放大）。
+    点半径实际 2–2.7px，JPEG 再糊 1px，掩 5px 足够；点距 48px，掩掉的面积 <4%，对真实主体的统计影响可忽略。"""
+    m = np.zeros((H, W), bool)
+    if BG != 'dots':
+        return m
+    sc = max(W / 960, H / 540); ox = (W - 960 * sc) / 2; oy = (H - 540 * sc) / 2
+    yy, xx = np.ogrid[-r:r + 1, -r:r + 1]; disc = (xx * xx + yy * yy) <= r * r
+    for y in range(18, 540, 36):
+        for x in range(24, 960, 36):
+            cx = int(round(ox + x * sc)); cy = int(round(oy + y * sc))
+            y0, y1 = max(0, cy - r), min(H, cy + r + 1); x0, x1 = max(0, cx - r), min(W, cx + r + 1)
+            if y1 <= y0 or x1 <= x0: continue
+            m[y0:y1, x0:x1] |= disc[(y0 - cy + r):(y1 - cy + r), (x0 - cx + r):(x1 - cx + r)]
+    return m
+DOT_MASK = dot_mask()
+# 点阵底色 #0b0c11 本身带一点蓝（sat≈.35、lum≈12），会整屏落进「柔光」判据（sat>.25 且 10<lum<110）→ 空场检测被屏蔽、主角区柔光虚高；
+# dots 模式把柔光亮度下限抬到 22（实测底色+噪点 ≤18；紫柔光在内容区的亮度多在 25–110，基本不受影响）。
+SOFT_LO = 22 if BG == 'dots' else 10
 
 def parse_shots():
     if a.shots:
@@ -50,7 +80,7 @@ def analyze(i):
     r, g, b = arr[..., 0], arr[..., 1], arr[..., 2]
     lum = (r * 299 + g * 587 + b * 114) // 1000
     mx = arr.max(2); mn = arr.min(2); sat = np.where(mx > 0, (mx - mn) / np.maximum(mx, 1), 0)
-    bright = lum[Z] > 120
+    bright = (lum[Z] > 120) & ~DOT_MASK[Z]   # 点阵波幕底（BG='dots'）的点先抠掉，不然波前 40–60 个亮点会被数成碎屑
     # 横向 41 / 纵向 13 的结构元：把一行大字的字与字（含千分位逗号、字距 ≤40px）并成一个物体，但不会把间距 ≥50 的胶囊行并起来
     obj = ndi.binary_dilation(bright, structure=np.ones((13, 41), bool))
     lab, n = ndi.label(obj)
@@ -64,7 +94,7 @@ def analyze(i):
             # 主体尺度：高度，或"宽度折算"——宽而不细的物体（一行大字、宽卡）按 min(w, 4h)/2.5 计，细线（h 很小）几乎不加分
             size = max(h, min(w, 4 * h) / 2.5)
             if size > hero_h: hero_h = size; hero_box = s
-    soft = (sat[Z] > 0.25) & (lum[Z] > 10) & (lum[Z] < 110)
+    soft = (sat[Z] > 0.25) & (lum[Z] > SOFT_LO) & (lum[Z] < 110) & ~DOT_MASK[Z]
     glow_total = int(soft.sum())  # 全内容区柔光面积：扫光 / 光线 / 光环阶段很大 → 这类帧不算空场
     glow_hero = 0
     if hero_box is not None:
@@ -122,7 +152,7 @@ for sid, lo, hi in shots:
     for f in flags:
         flags_total[f[0]] += 1
     lines.append(f'| {sid} | {lo}–{hi} | {med_h:.0f} / {min_h} | {low_run} | {np.median(gl):.0f} / {np.median(gt):.0f} | {np.median(pp):.0f} | {sbest} | {"；".join(flags) or "OK"} |')
-head = f'# 构图/光/运动量化（{a.frames}，步长 {a.step}）\n\n标记合计：高 {flags_total["高"]} / 中 {flags_total["中"]} / 低 {flags_total["低"]}。判据见 reference/composition-and-light.md §6。\n\n'
+head = f'# 构图/光/运动量化（{a.frames}，步长 {a.step}，幕底 {BG}）\n\n标记合计：高 {flags_total["高"]} / 中 {flags_total["中"]} / 低 {flags_total["低"]}。判据见 reference/composition-and-light.md §6。\n\n'
 txt = head + '\n'.join(lines) + '\n'
 if a.out:
     os.makedirs(os.path.dirname(a.out) or '.', exist_ok=True); open(a.out, 'w', encoding='utf-8').write(txt); print(a.out)
