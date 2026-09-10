@@ -64,7 +64,7 @@ ln -s "$PWD/anything2explainer" ~/.codex/skills/anything2explainer    # Codex
 brew install ffmpeg          # 抽帧 / 转码，必需
 
 python3 -m venv ~/.venvs/a2e && source ~/.venvs/a2e/bin/activate
-pip install 'edge-tts==7.2.8' numpy pillow scipy   # 建议固定 edge-tts 版本：它跟着微软端点变，升级常有破坏性
+pip install 'edge-tts==7.2.8' numpy pillow scipy   # 建议固定 edge-tts 版本：它跟着微软端点变，升级常有破坏性（7.2.0 起词边界要显式请求，脚本已处理）
 
 # 只做英文片时再装（kokoro-82m 本地推理）
 pip install kokoro soundfile && brew install espeak-ng
