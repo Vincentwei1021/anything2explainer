@@ -64,7 +64,7 @@ Dependencies:
 brew install ffmpeg          # frame extraction / transcoding, required
 
 python3 -m venv ~/.venvs/a2e && source ~/.venvs/a2e/bin/activate
-pip install 'edge-tts==7.2.8' numpy pillow scipy   # pin edge-tts: it tracks a Microsoft endpoint and breaks across upgrades
+pip install 'edge-tts==7.2.8' numpy pillow scipy   # pin edge-tts: it tracks a Microsoft endpoint and breaks across upgrades (7.2.0+ needs word boundaries requested explicitly; the script does)
 
 # only needed for English narration (kokoro-82m runs locally)
 pip install kokoro soundfile && brew install espeak-ng

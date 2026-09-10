@@ -14,6 +14,7 @@
 
 TTS 引擎（`TTS_ENGINE`，默认 `auto` = 按解说词语言选；**跑之前先问用户有没有偏好的 TTS**，见 SKILL.md 确认点 3）：
   edge     中文默认。edge-tts 云端合成，有词级边界 → 字幕节拍最准。VOICE=zh-CN-YunxiNeural RATE=+8%
+           词边界要显式请求（boundary='WordBoundary'，7.2.0 起的默认值不给），否则字幕起点会静默退化成插值。
   kokoro   英文默认。kokoro-82m 本地推理（`pip install kokoro soundfile` + `brew install espeak-ng`）。
            KOKORO_VOICE=am_liam（Liam，男声，与中文云希同定位）KOKORO_LANG=a KOKORO_SPEED=1.0
   kokoro 没有词边界 → 改为「逐字幕块分别合成再拼接」，块起始帧因此也是精确的（CHUNK_PAD 调块间静音）。
@@ -39,7 +40,7 @@ KOKORO_LANG = os.environ.get('KOKORO_LANG', 'a')       # a=American English, b=B
 KOKORO_SPEED = float(os.environ.get('KOKORO_SPEED', 1.0))
 KOKORO_SR = 24000
 CHUNK_PAD = float(os.environ.get('CHUNK_PAD', 0.06))  # 无词边界引擎：块间静音秒
-EDGE_TRIES = int(os.environ.get('EDGE_TRIES', 4))       # edge-tts 每句最多试几次（端点会间歇性返回空音频）
+EDGE_TRIES = int(os.environ.get('EDGE_TRIES', 4))     # edge-tts 每句最多试几次（端点会间歇性返回空音频）
 GAP = int(os.environ.get('GAP', 10))          # 句间空白帧
 CHAPTER_GAP = int(os.environ.get('CHAPTER_GAP', 45))  # 章节前空白帧
 LEAD = int(os.environ.get('LEAD', 40))        # 片头静音帧
@@ -128,6 +129,8 @@ def write_wav(path, x, sr):
 
 async def synth_edge(text):
     """edge-tts：整句合成 + 词级边界（会把 text 发送到微软云端端点）。
+    boundary='WordBoundary' 必须显式传：edge-tts 7.2.0 起该参数默认 'SentenceBoundary'，
+    不传就一个 WordBoundary 事件都收不到，chunk_starts() 会静默退化成按字数插值（字幕能偏半秒）。
     端点会间歇性返回空音频（NoAudioReceived）：50 句的片子里随机一两句中招，同一句重试多半就过，
     所以试 EDGE_TRIES 次；试完还拿不到就报错退出，不把空 mp3 当成品往下传。"""
     import edge_tts
@@ -137,7 +140,7 @@ async def synth_edge(text):
     for attempt in range(1, EDGE_TRIES + 1):
         audio = bytearray(); words = []
         try:
-            comm = edge_tts.Communicate(text, VOICE, rate=RATE)
+            comm = edge_tts.Communicate(text, VOICE, rate=RATE, boundary='WordBoundary')
             async for ch in comm.stream():
                 if ch['type'] == 'audio':
                     audio += ch['data']
@@ -146,6 +149,8 @@ async def synth_edge(text):
             if audio:
                 break
             why = '端点返回空音频'
+        except TypeError:                # boundary 参数是 edge-tts 7.2.0 才有的
+            raise SystemExit("edge-tts 版本过旧：pip install 'edge-tts==7.2.8'")
         except Exception as e:
             why = f'{type(e).__name__}: {e}'
         if attempt == EDGE_TRIES:
