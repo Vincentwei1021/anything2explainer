@@ -195,6 +195,10 @@ Remotion 自身对公司用户另有授权要求，见 [remotion.dev/license](ht
 
 ## Star History
 
-<a href="https://star-history.com/#Vincentwei1021/anything2explainer&Date">
-  <img src="https://api.star-history.com/svg?repos=Vincentwei1021/anything2explainer&type=Date" alt="Star History Chart" width="600">
+<a href="https://www.star-history.com/?type=date&repos=Vincentwei1021%2Fanything2explainer">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=Vincentwei1021/anything2explainer&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=Vincentwei1021/anything2explainer&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=Vincentwei1021/anything2explainer&type=date&legend=top-left" />
+ </picture>
 </a>
