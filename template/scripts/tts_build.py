@@ -18,7 +18,7 @@ TTS 引擎（`TTS_ENGINE`，默认 `auto` = 按解说词语言选；**跑之前�
            KOKORO_VOICE=am_liam（Liam，男声，与中文云希同定位）KOKORO_LANG=a KOKORO_SPEED=1.0
   kokoro 没有词边界 → 改为「逐字幕块分别合成再拼接」，块起始帧因此也是精确的（CHUNK_PAD 调块间静音）。
   用户有别的 TTS 偏好时不走本脚本：让他给成品配音 wav，按逐句/逐块时间轴手填 timeline.ts 与 subs.ts。
-其它环境变量：GAP/CHAPTER_GAP/LEAD/TAIL（帧）。
+其它环境变量：GAP/CHAPTER_GAP/LEAD/TAIL（帧）、EDGE_TRIES（edge 每句最多试几次，端点会间歇性返回空音频）。
 """
 import asyncio, hashlib, json, os, re, subprocess, sys
 import numpy as np
@@ -39,6 +39,7 @@ KOKORO_LANG = os.environ.get('KOKORO_LANG', 'a')       # a=American English, b=B
 KOKORO_SPEED = float(os.environ.get('KOKORO_SPEED', 1.0))
 KOKORO_SR = 24000
 CHUNK_PAD = float(os.environ.get('CHUNK_PAD', 0.06))  # 无词边界引擎：块间静音秒
+EDGE_TRIES = int(os.environ.get('EDGE_TRIES', 4))       # edge-tts 每句最多试几次（端点会间歇性返回空音频）
 GAP = int(os.environ.get('GAP', 10))          # 句间空白帧
 CHAPTER_GAP = int(os.environ.get('CHAPTER_GAP', 45))  # 章节前空白帧
 LEAD = int(os.environ.get('LEAD', 40))        # 片头静音帧
@@ -126,18 +127,31 @@ def write_wav(path, x, sr):
 
 
 async def synth_edge(text):
-    """edge-tts：整句合成 + 词级边界（会把 text 发送到微软云端端点）。"""
+    """edge-tts：整句合成 + 词级边界（会把 text 发送到微软云端端点）。
+    端点会间歇性返回空音频（NoAudioReceived）：50 句的片子里随机一两句中招，同一句重试多半就过，
+    所以试 EDGE_TRIES 次；试完还拿不到就报错退出，不把空 mp3 当成品往下传。"""
     import edge_tts
     mp3 = cache_path(text, '.mp3'); js = cache_path(text, '.json')
     if os.path.exists(mp3) and os.path.exists(js):
         return mp3, json.load(open(js))
-    comm = edge_tts.Communicate(text, VOICE, rate=RATE)
-    audio = bytearray(); words = []
-    async for ch in comm.stream():
-        if ch['type'] == 'audio':
-            audio += ch['data']
-        elif ch['type'] == 'WordBoundary':
-            words.append({'t': ch['offset'] / 1e7, 'd': ch['duration'] / 1e7, 'text': ch['text']})
+    for attempt in range(1, EDGE_TRIES + 1):
+        audio = bytearray(); words = []
+        try:
+            comm = edge_tts.Communicate(text, VOICE, rate=RATE)
+            async for ch in comm.stream():
+                if ch['type'] == 'audio':
+                    audio += ch['data']
+                elif ch['type'] == 'WordBoundary':
+                    words.append({'t': ch['offset'] / 1e7, 'd': ch['duration'] / 1e7, 'text': ch['text']})
+            if audio:
+                break
+            why = '端点返回空音频'
+        except Exception as e:
+            why = f'{type(e).__name__}: {e}'
+        if attempt == EDGE_TRIES:
+            raise SystemExit(f'edge-tts 试了 {EDGE_TRIES} 次仍拿不到音频（{why}）：{text[:30]}…')
+        print(f'  ⚠ edge-tts 第 {attempt} 次失败（{why}），{1.5 * attempt:.1f}s 后重试：{text[:16]}…')
+        await asyncio.sleep(1.5 * attempt)
     open(mp3, 'wb').write(audio)
     json.dump(words, open(js, 'w'), ensure_ascii=False)
     return mp3, words
