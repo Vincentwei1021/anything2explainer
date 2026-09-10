@@ -219,3 +219,24 @@ export const setPiece = (T0: number, T1: number) => ({
   sub: T1 + SET_PIECE.sub,
   pills: T1 + SET_PIECE.pills,
 });
+
+// ---- 圆形光斑 / 暗角 / 主角组合（来自 G1 g1ui.tsx，升入共用层供各组复用）----
+/** 圆形紫柔光斑（radial-gradient）：图形主角脚下/身后的大面积光，比 HeroGlow 的矩形 box-shadow 更适合圆形/人形主角（Gauge、PersonIcon、环）。N 传入时 30 帧呼吸 ±15%，k 为强度 0→1 */
+export const GlowBlob: React.FC<{cx: number; cy: number; r: number; N?: number; k?: number; alpha?: number}> = ({cx, cy, r, N, k = 1, alpha = 0.34}) => {
+  const breathe = N === undefined ? 1 : 1 + 0.15 * Math.sin((2 * Math.PI * N) / 30);
+  const a = clamp01(k) * breathe * alpha;
+  if (a <= 0.005) return null;
+  return <div style={{position: 'absolute', left: cx - r, top: cy - r, width: 2 * r, height: 2 * r, borderRadius: '50%', background: `radial-gradient(circle, rgba(102,45,248,${a.toFixed(3)}) 0%, rgba(102,45,248,${(a * 0.55).toFixed(3)}) 34%, rgba(102,45,248,0) 70%)`}} />;
+};
+/** 屏幕空间顶/底暗角（推近时同步淡入 18 帧）：k 0→1。放在 CameraRig 之外（屏幕空间，不随相机）。
+ *  顶带默认从 y=top(100) 起、高 topH(100)，**不压 HUD 胶囊（y 28–100）**；底带 560–687（止于进度条：条体半透明，压暗其后方会让条变暗，QC v1 C1）。 */
+export const Vignette: React.FC<{k: number; alpha?: number; top?: number; topH?: number}> = ({k, alpha = 0.4, top = 100, topH = 100}) => {
+  if (k <= 0.005) return null;
+  const a = (alpha * clamp01(k)).toFixed(3);
+  return (
+    <>
+      <div style={{position: 'absolute', left: 0, top, width: 1280, height: topH, background: `linear-gradient(180deg, rgba(0,0,0,${a}) 0%, rgba(0,0,0,0) 100%)`}} />
+      <div style={{position: 'absolute', left: 0, top: 560, width: 1280, height: 127, background: `linear-gradient(0deg, rgba(0,0,0,${a}) 0%, rgba(0,0,0,0) 100%)`}} />
+    </>
+  );
+};

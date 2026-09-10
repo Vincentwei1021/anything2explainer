@@ -31,6 +31,8 @@
 - **高光时刻**：分镜表「全局约束 §高光时刻清单」里的镜头按 composition-and-light.md §3 编排（`LightSweep` → `StageLine` → `GhostText` → 白闪 + `GlitchIn` → 脉冲 → 副标 → 拆词），≥90 帧；不要用「胶囊 + 图标 + 一行字」应付。
 - **背景只有幕底**（星点或点阵波）：不撒小图标做氛围；表现「多」用 ≥6px 方点阵列，按节拍点亮。
 - **纵深**：空间 / 层级 / 索引用 `TiltPlane` 叠层，筛选用 `Trap`，旋转只给齿轮表盘转盘。
+- **持续动作**（composition-and-light.md §7）：每个字幕块的动词有持续到下一拍的动作；入场后不许完全静止 >30 帧；没有其它运镜的镜头加 1.0→1.05 慢推（内容留在 x 89–1191 / y 122–607）。完工前 `python3 scripts/motion_check.py <Gn>`：每镜头静止 ≤40%、最长 ≤0.7 s（成片复测口径更严），数字写进 BUILD_NOTES。
+- **共用小工具必须用共用层的**：`softOp / firstOp / exitOp / glowOffK / mix / mixHex / glowPurple(k) / glowPurpleS(k)`（ui.tsx）、`GlowBlob / Vignette`（fx.tsx）；首帧入场用 `firstOp`（`fadeIn(0)=0` 会空一帧），硬切前 `exitOp`，带光元素先 `glowOffK` 再淡出。
 - 入场三选一：GlitchIn 12 帧模板（标题/胶囊/关键词）、自下滑入 `y = yEnd + Δ·powOutRemain(n,22,2.5)`（Δ≈300，图形/卡片）、21 帧缩放入场 `s = s0+(1−s0)·BEZ_SCALE_IN(n/21)`（图标）。列表/卡片阵列按 **2 帧错峰**。
 - 线条/箭头 draw-on：SVG `clipPath` rect 或 stroke-dasharray，箭头**自根部长出**，16–28 帧。
 - 强调：`emphasisPulse(n,{peak:1.11})`，灰→紫 11 帧变色，柔光 `box-shadow 0 0 24px 8px rgba(102,45,248,.6)`。

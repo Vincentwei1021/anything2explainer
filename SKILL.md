@@ -17,7 +17,8 @@ description: 给一个主题，产出一条黑底 MG 风格（幕底可选星点
 3. **全片一个示例语境**：解说与画面用同一个贯穿例子（样片用"差旅报销"），跨组一致。
 4. **闪烁只给重点**：每个镜头 ≤1 处 GlitchIn，只给该镜头的核心术语；其余文字/标签/HUD 换词一律 `SoftIn` 淡入。
 5. **字幕带 y637–690 与进度条 y687–720 不放内容**；入场轨迹不得穿过字幕带；镜头衔接必须"前一镜头末 N 帧离场到 α=0 + 后一镜头首帧起入场"。
-6. **每镜头一个主角、光跟主角、有运镜**：主角高度 ≥170px 或大字 ≥96px 并带紫柔光 / 光环 / 硬投影；配角不发光；内容区最大物体 <110px 不得持续 >45 帧；每章 1–2 个高光时刻按标准编排、≥3 次运镜；背景只有幕底（星点或点阵波），不撒碎屑。细则 `reference/composition-and-light.md` 与 `motion-vocabulary.md` §镜头运动，反例 `examples/contrast/`。
+6. **持续动作，不许「入场即停」**：每个字幕块的动词要有持续到下一拍的动作，元素入场后不许完全静止 >30 帧，没有其它运镜的镜头加 1.0→1.05 慢推；`scripts/motion_check.py` 量化（静止帧 ≤40%、最长 ≤1 s，成片复测为准）。细则 `reference/composition-and-light.md` §7。
+7. **每镜头一个主角、光跟主角、有运镜**：主角高度 ≥170px 或大字 ≥96px 并带紫柔光 / 光环 / 硬投影；配角不发光；内容区最大物体 <110px 不得持续 >45 帧；每章 1–2 个高光时刻按标准编排、≥3 次运镜；背景只有幕底（星点或点阵波），不撒碎屑。细则 `reference/composition-and-light.md` 与 `motion-vocabulary.md` §镜头运动，反例 `examples/contrast/`。
 
 ## 四个确认点（必须停下来等用户回话，不要自己往下走）
 1. **时长与语言**（阶段 1 派调研的同时问，写文案之前必须有答案）：「想做多长？中文还是英文？」都不要默认。时长决定内容丰富程度与全流程规模——句数、镜头数、构建组数都从下表推；章数不由时长定，按内容结构分（一章讲透或多章概览都行）。用户没概念时给这张表让他挑，并说明「越长要覆盖的知识点越多，做的时间也按比例涨」。
@@ -28,7 +29,7 @@ description: 给一个主题，产出一条黑底 MG 风格（幕底可选星点
    | 3–5 分钟（样片档） | 1200–1500 | 420–700 | 40–50 | 8 | ≈2 小时 |
    | 5–8 分钟 | 1800–2400 | 700–1150 | 60–80 | 10–14 | ≈2–3 小时 |
 
-   语速：中文约 6 字/秒、英文约 2.9 词/秒，加句间/章节留白后成片密度约 4.5–5 字/秒 / 2.3 词/秒。章数不写死在代码里（进度条按 `CHAPTER_STARTS.length` 等宽分章）：一章讲透或多章概览都能跑；章多时章名要短（槽宽 = 1280 ÷ 章数）。
+   语速：中文约 6 字/秒、英文 edge-tts 约 2.9 词/秒；**英文默认引擎 kokoro `am_liam` 实测只有 2.3 词/秒，成片密度 ≈2.1 词/秒 → 按 ≈125 词/分钟写（5 分钟 ≈640 词 / 48 句），上表英文词数乘 0.78**。加句间/章节留白后中文成片密度约 4.5–5 字/秒。章数不写死在代码里（进度条按 `CHAPTER_STARTS.length` 等宽分章）：一章讲透或多章概览都能跑；章多时章名要短（槽宽 = 1280 ÷ 章数）。
    **英文片**：阶段 0 建完项目就把 `src/config.ts` 的 `lang` 改成 `'en'`、`title.rest` 留空，其余差异（不压窄 / 基线 / 字幕与章名长度预算 / 配音默认 Liam）见 `reference/narration-storyboard.md` §2.5 与 `style-guide.md` §3.1。视觉标尺仍用中文样片的帧。
 2. **解说词定稿**（阶段 2，配音之前）：把 `script/narration.txt` 全文 + 章节划分 + 字数/预估时长贴给用户，问「这版文案可以吗」。定稿后帧号会被每个镜头硬编码，改一个字就要全片重对位——这是全流程最便宜的一次干预点。
 3. **配音**（阶段 2，跑 `tts_build.py` 之前）：问一句「配音有没有偏好的 TTS？」没有就用默认——**中文 edge-tts `zh-CN-YunxiNeural`（云希，男声，+8%）、英文 kokoro-82m `am_liam`（Liam，男声）**（`TTS_ENGINE=auto` 按解说词语言自动选，不必手动指定）。有偏好就让他用自己的 TTS 生成成品配音，放到 `public/assets/<slug>/audio.wav`，再按逐句/逐块时间轴手填 `src/common/timeline.ts` 与 `subs.ts`（格式见 `tts_build.py` 文件头），后续流程不变。
@@ -41,17 +42,17 @@ description: 给一个主题，产出一条黑底 MG 风格（幕底可选星点
 
 阶段 2 解说词与时间轴（20 分，主会话）：按 `reference/narration-storyboard.md` 写 `script/narration.txt`（句数/字数按确认点 1 的时长表，章数按内容定；`# CHAPTER n 标题`；`|` 切字幕块 ≤16 字）→ **确认点 2** → **确认点 3** → `python3 scripts/tts_build.py` → 配音 wav + `src/common/timeline.ts` + `subs.ts` + `script/timeline.md`。跑完核对成片时长是否落在用户要的区间（差 >15% 就加/删句子重跑，别靠改语速硬凑）。**定稿后不再改词**（帧号会全变）。
 
-阶段 3 分镜（25 分，主会话）：写 `script/storyboard_src.md`（令牌 `{S12.from-8}` `{S12.c3}` `{C2}`），`python3 scripts/render_storyboard.py` → `分镜表.md`。每镜头一行：帧区间 / 节拍（字幕块起始帧）/ 画面 / 动效（含运镜）/ **主角·尺寸** / **光**；末尾"全局约束"写示例语境、闪烁白名单、事实清单、**高光时刻清单**（每章 1–2 个）、**运镜清单**（每章 ≥3 处）。改 `src/config.ts`（片名、章节英文、HUD 条目、流程轨）。
+阶段 3 分镜（25 分，主会话）：写 `script/storyboard_src.md`（令牌 `{S12.from-8}` `{S12.c3}` `{C2}`），`python3 scripts/render_storyboard.py` → `分镜表.md`。每镜头一行：帧区间 / 节拍（字幕块起始帧）/ 画面 / 动效（含运镜）/ **主角·尺寸** / **光**；末尾"全局约束"写示例语境、闪烁白名单、事实清单、**高光时刻清单**（每章 1–2 个）、**运镜清单**（每章 ≥3 处）、**§9 持续动作**（判据照抄 `composition-and-light.md` §7）。动效列每镜头末尾必须有一句「持续：…」——这个字幕块的动词靠哪个动作撑到下一拍，没有其它运镜的写「1.0→1.05 慢推」。改 `src/config.ts`（片名、章节英文、HUD 条目、流程轨）。
 
 阶段 4 覆盖层与图元（10 分，主会话）：模板已带片头/章节卡/HUD/流程轨/片尾（`src/overlay/`）、图元库（`src/ui.tsx`）与光效/运镜图元（`src/fx.tsx`：扫光、舞台光线、幽灵轮廓、光环、主角柔光、大数字、倾斜平面、相机）。按主题补 2–5 个语义图标进 `ui.tsx`（如样片的 DocIcon/DBIcon/ChunkCard/LLMIcon），跑 `scripts/still.sh Overlay 40,<章节卡帧>,<有轨帧>,<片尾帧> <绝对路径> ov` 看一眼。
 
 阶段 5a 打样（15 分，1 个 agent）：先只派 **G1**（第 1 章上半，含片头后的头几个镜头），完工后 `scripts/preview.sh 30` → **确认点 4**：把前 30 秒样片给用户看，风格 / 字号 / 语速 / 节奏定下来。用户要改的（配色、字号、语速、片头、示例语境）在这里一次改完：改语速要重跑 `tts_build.py` 并重排分镜帧号，改风格只动 `ui.tsx` / `overlay/` + G1。
 
-阶段 5b 并行构建（40 分，其余各组各 1 个 agent）：组数按确认点 1 的时长表（样片档 8 组 → 这里派 G2–G8 共 7 个），每组 5–7 镜头。派单用 `reference/prompts.md` 的构建 prompt，附 `reference/agent-build-rules.md`，并把 G1 作为已验收的风格样例点名让它们读。并发上限约 12 个 pane，超过就按 4 个一波派（见 `reference/lessons.md` §多 agent）。要求：边做边写盘、每镜头 ≥6 张 still 自检、30 帧测渲、BUILD_NOTES。构建组的合理偏离（换示例文本、补中文全称、改拓扑）只要有出处就放行，一句话裁定。
+阶段 5b 并行构建（40 分，其余各组各 1 个 agent）：组数按确认点 1 的时长表（样片档 8 组 → 这里派 G2–G8 共 7 个），每组 5–7 镜头。派单用 `reference/prompts.md` 的构建 prompt，附 `reference/agent-build-rules.md`，并把 G1 作为已验收的风格样例点名让它们读。并发上限约 12 个 pane，超过就按 4 个一波派（见 `reference/lessons.md` §多 agent）。要求：边做边写盘、每镜头 ≥6 张 still 自检、30 帧测渲、**`python3 scripts/motion_check.py <Gn>` 达标（静止 ≤40%、最长 ≤0.7 s）**、BUILD_NOTES。收组后主会话跑 `python3 scripts/selfcheck.py`（几秒，静态查帧覆盖空洞 / 闪烁白名单超标 / 画面字面量不在事实清单）。构建组的合理偏离（换示例文本、补中文全称、改拓扑）只要有出处就放行，一句话裁定。
 
 阶段 6 渲染（5 分）：`npx tsc --noEmit` → `VER=v1 scripts/render.sh`（8000 帧 ≈ 4.5 分钟片长，渲 3–4 分钟，concurrency 6）→ `renders/<slug>_v1.mp4` + `fin_frames/` + `renders/sheet_v1.html`。主会话自己拼 6 张 overview contact sheet 通读一遍，并跑 `python3 scripts/frame_metrics.py --out qc/frame_metrics_v1.md`（空场 / 主角无光 / 碎屑标记先于 QC 派修）。
 
-阶段 7 QC 与修复（60–90 分）：每章 1 个 QC agent（`reference/agent-qc-rules.md`）→ `qc/qc_v1_Cn.md`；按组派修复 agent（一个 agent 只修一到两组）；主会话修覆盖层。渲 v2 → 2 个复验 agent 逐条核 v1 问题 + 回归通读 → 小修 → v3。终检：闪烁白名单扫描 + frame_metrics 构图与光复核 + 高光时刻 / 运镜清单逐条确认 + 遗留项 + 回归。样片两轮后：高 0 / 中 0 / 低 ≤5。
+阶段 7 QC 与修复（60–90 分）：每章 1 个 QC agent（`reference/agent-qc-rules.md`）→ `qc/qc_v1_Cn.md`；按组派修复 agent（一个 agent 只修一到两组）；主会话修覆盖层。渲 v2 → 2 个复验 agent 逐条核 v1 问题 + 回归通读 → 小修 → v3。终检：闪烁白名单扫描 + frame_metrics 构图与光复核 + **`motion_check.py --frames fin_frames` 成片复测（组级低分辩率读数偏松，成片才是判据；第四片组级 48/48 过、成片 11 个超限）** + 高光时刻 / 运镜清单逐条确认 + 遗留项 + 回归。样片两轮后：高 0 / 中 0 / 低 ≤5。
 
 阶段 8 交付：`交付说明.md`（成片、配音来源、事实出处、示例语境、质检结论、已知保留项、目录）；把新经验写回本 skill 的 `reference/lessons.md`。
 
@@ -70,6 +71,8 @@ description: 给一个主题，产出一条黑底 MG 风格（幕底可选星点
 | `reference/prompts.md` | 研究/构建/QC/修复/复验/终检 六种 agent 的 prompt 模板 |
 | `reference/lessons.md` | 踩过的坑与根因（磁盘、bundle、离场归零、穿字幕带、glitch 错峰、kf 首值陷阱…） |
 | `template/scripts/frame_metrics.py` | 逐镜头量最大物体高度 / 主角区柔光 / 紫色碎片 / 静止段，输出带严重度标记的表 |
+| `template/scripts/motion_check.py` | 动效密度：组级 `motion_check.py Gn`（≈10 s）/ 成片 `--frames fin_frames`（判据），每镜头静止帧占比与最长静止 + 真静 / 小面积动作分类 |
+| `template/scripts/selfcheck.py` | 主会话静态自检（不渲染）：帧覆盖与分镜表对账、GlitchIn 计数 vs 白名单、画面字面量 vs 事实清单 |
 | `examples/contrast/` | 6 组反例（广告竞价片）/ 正例（RAG 样片）帧对照 + 说明 |
 | `examples/rag/` | 样片全套：调研、解说词、分镜源与成品、时间轴、构建/QC 协议、QC 报告、镜头源码 `shots_src/`、图元 `ui_rag.tsx`、成片帧 `frames/` |
 
