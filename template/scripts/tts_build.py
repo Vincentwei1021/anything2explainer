@@ -145,10 +145,27 @@ async def synth_edge(text):
 
 _kokoro = None
 
+# kokoro 读音覆写（只影响送给 TTS 的文本，字幕仍显示原词）。语法是 kokoro/misaki 的 [词](/音标/)。
+# 实测 kokoro 会把 CUDA/NIXL/MIG/DeepGEMM 逐字母拼读、把 v5.0 读成 "v five zero"，故在此覆写；按片子需要增删。
+PRONOUNCE = {
+    'CUDA': '[CUDA](/kˈudə/)',
+    'NIXL': '[NIXL](/nˈɪksəl/)',
+    'MIG': '[MIG](/mˈɪɡ/)',
+    'DeepGEMM': '[DeepGEMM](/dˌipʤˈɛm/)',
+    'v5.0': '[v5.0](/vˈi fˈIv pYnt ˈO/)',
+}
+
+
+def apply_pronounce(text):
+    for k, v in PRONOUNCE.items():
+        text = re.sub(r'(?<![A-Za-z0-9])' + re.escape(k) + r'(?![A-Za-z0-9])', v, text)
+    return text
+
 
 def synth_kokoro(text):
     """kokoro-82m：本地推理，24kHz，无词边界。"""
     global _kokoro
+    text = apply_pronounce(text)
     au = cache_path(text, '.wav')
     if os.path.exists(au):
         return au

@@ -192,3 +192,9 @@ Remotion 自身对公司用户另有授权要求，见 [remotion.dev/license](ht
 - 不适用：复刻某条现有视频、真人口播、以实拍为主的片子。
 - 解说词一旦配音定稿就不能改词（镜头代码里硬编码帧号），改词等于全片重对位。
 - 并行构建对机器有要求：多个 agent 同时跑 Remotion bundle，建议预留 ≥5GB 磁盘；tmux pane 有上限，超过 12 个要分波派。
+
+## Star History
+
+<a href="https://star-history.com/#Vincentwei1021/anything2explainer&Date">
+  <img src="https://api.star-history.com/svg?repos=Vincentwei1021/anything2explainer&type=Date" alt="Star History Chart" width="600">
+</a>

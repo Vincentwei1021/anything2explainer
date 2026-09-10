@@ -1,7 +1,7 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {GlitchIn, kf, emphasisPulse, easeInOutPow, SENTENCES, TOTAL_FRAMES, CHAPTER_STARTS, FONT_HEAVY, FONT_WIDE, FONT_ORB, clamp01, SQUEEZE, fitSize, EM_WIDE} from '../common';
-import {CText, TechText, Pill, TopCapsule, ArrowH, PURPLE, PURPLE_TECH, GREY, GREY_MID, WHITE, GLOW_PURPLE_S, fadeIn, slideUp} from '../ui';
+import {CText, TechText, Pill, TopCapsule, ArrowH, PURPLE, PURPLE_TECH, GREY, GREY_MID, WHITE, GLOW_PURPLE_S, PILL_SHADOW, fadeIn, slideUp} from '../ui';
 import {VIDEO} from '../config';
 const clampFrames = (n: number, len: number) => clamp01(n / len);
 
@@ -20,7 +20,8 @@ const exitOut = (n: number) => {
 };
 
 // ---------- 片头 ----------
-export const TITLE_RANGE: [number, number] = [1, SENTENCES[0].from - 9];
+// 配音未生成时（timeline.ts 占位、SENTENCES 为空）用兜底值，让探针 still 能渲染
+export const TITLE_RANGE: [number, number] = [1, (SENTENCES[0]?.from ?? 100) - 9];
 export const Title: React.FC = () => {
   const N = useCurrentFrame() + TITLE_RANGE[0];
   const [a, b] = TITLE_RANGE;
@@ -38,14 +39,15 @@ export const Title: React.FC = () => {
           ) : null}
         </div>
       </GlitchIn>
-      <div style={{position: 'absolute', inset: 0, opacity: fadeIn(N - (a + 25), 12), transform: `translateY(${slideUp(N - (a + 25), 60)}px)`}}>
+      <div style={{position: 'absolute', inset: 0, opacity: fadeIn(N - (a + 20), 10), transform: `translateY(${slideUp(N - (a + 20), 60, 18)}px)`}}>
         <TechText cx={640} cy={446} text={VIDEO.title.en} fontSize={38} scaleX={0.82} weight={700} />
       </div>
-      <div style={{position: 'absolute', inset: 0, opacity: fadeIn(N - (a + 40), 12)}}>
+      {/* QC v1 C1 #1：tagline 原 a+40 起淡入、满态只有 13 帧读不完 → 提前到 a+28（满态 ≈ a+38 → 出画 a+66，28 帧）；完整署名另在片尾 EndCredit 停 3 s */}
+      <div style={{position: 'absolute', inset: 0, opacity: fadeIn(N - (a + 28), 10)}}>
         <CText cx={640} cy={520} size={30} weight={500} color={GREY} letterSpacing={6}>
           {VIDEO.title.tagline}
         </CText>
-        <div style={{position: 'absolute', left: 520, top: 496, width: 240, height: 2, background: 'rgba(255,255,255,0.35)', transform: `scaleX(${fadeIn(N - (a + 40), 16)})`}} />
+        <div style={{position: 'absolute', left: 520, top: 496, width: 240, height: 2, background: 'rgba(255,255,255,0.35)', transform: `scaleX(${fadeIn(N - (a + 28), 14)})`}} />
       </div>
     </div>
   );
@@ -87,7 +89,7 @@ export const ChapterCard: React.FC<{card: (typeof CHAPTER_CARDS)[number]}> = ({c
 // ---------- 顶部 HUD 胶囊 ----------
 export type HudEntry = {from: number; to: number; text: string; tech?: string; w?: number};
 /** HUD 条目由 config.hud 的句 id 解析；章首条目从章节卡结束的下一帧开始（fromOffset 默认：本章第一条 −8，其余 0）。 */
-export const HUD: HudEntry[] = VIDEO.hud.map((h) => {
+export const HUD: HudEntry[] = (SENTENCES.length ? VIDEO.hud : []).map((h) => {
   const a = S(h.fromS), b = S(h.toS);
   const isChapterFirst = SENTENCES.find((x) => x.chapter === a.chapter)!.id === a.id && a.chapter > 1;
   const from = a.from + (h.fromOffset ?? (isChapterFirst ? -8 : 0));
@@ -97,23 +99,44 @@ export const HUD: HudEntry[] = VIDEO.hud.map((h) => {
 });
 // 同章相邻条目之间不留空档（G1 提示 742–751 无胶囊）：上一条延到下一条 from−1；跨章节卡（间隔 ≥30 帧）保持空档，由章节卡接管
 for (let i = 0; i < HUD.length - 1; i++) if (HUD[i + 1].from - HUD[i].to < 30) HUD[i].to = HUD[i + 1].from - 1;
-export const HUD_RANGE: [number, number] = [HUD[0].from, HUD[HUD.length - 1].to];
+export const HUD_RANGE: [number, number] = HUD.length ? [HUD[0].from, HUD[HUD.length - 1].to] : [0, 0];
+const hudW = (h: HudEntry) => h.w ?? Math.max(216, Math.round(h.text.replace(/[^一-龥]/g, '').length * 34 + h.text.replace(/[一-龥\s]/g, '').length * 20 + (h.text.match(/\s/g)?.length ?? 0) * 10 + 60));
 export const Hud: React.FC = () => {
   const N = useCurrentFrame() + HUD_RANGE[0];
-  const e = HUD.find((h) => N >= h.from && N <= h.to);
-  if (!e) return null;
+  const idx = HUD.findIndex((h) => N >= h.from && N <= h.to);
+  if (idx < 0) return null;
+  const e = HUD[idx];
   // QC v1 C3：进章节卡前 HUD 一帧消失 → 末 8 帧淡出（只对跨章节卡的条目生效：下一条 from 与本条 to 间隔 ≥30）
-  const idx = HUD.indexOf(e);
   const nextGap = idx < HUD.length - 1 ? HUD[idx + 1].from - e.to : 999;
   const fadeTail = nextGap >= 30 ? 1 - clampFrames(N - (e.to - 8), 8) : 1;
-  const w = e.w ?? Math.max(216, Math.round(e.text.replace(/[^一-龥]/g, '').length * 34 + e.text.replace(/[一-龥\s]/g, '').length * 20 + (e.text.match(/\s/g)?.length ?? 0) * 10 + 60));
-  // 第 2、3 章胶囊下方紧接流程轨，副标只在无流程轨时显示
+  const w = hudW(e);
+  // 终检 v2：同章换词时旧词单帧硬切 + 胶囊从 25% 重新淡入有 1 帧空白 → 胶囊常驻、宽度 10 帧过渡，旧词 6 帧淡出、新词 SoftIn
+  const prev = idx > 0 ? HUD[idx - 1] : undefined;
+  const n = N - e.from;
+  const sameChapter = !!prev && e.from - prev.to < 30;
+  if (sameChapter && prev && n < 10) {
+    const t = easeInOutPow(2.5)(clampFrames(n, 10));
+    const wNow = hudW(prev) + (w - hudW(prev)) * t;
+    const oldOp = 1 - clampFrames(n, 6);
+    const newOp = 1 - Math.pow(1 - clampFrames(n + 1, 9), 2.5);
+    return (
+      <div style={{position: 'absolute', inset: 0, opacity: fadeTail}}>
+        <Pill x={640 - wNow / 2} y={28} w={wNow} h={51} fill={PURPLE} sw={2} style={{filter: PILL_SHADOW}} />
+        {oldOp > 0.01 ? <CText cx={640} cy={53.5} size={33} weight={700} letterSpacing={1} opacity={oldOp}>{prev.text}</CText> : null}
+        <div style={{position: 'absolute', inset: 0, opacity: newOp, transform: `translateY(${((1 - newOp) * 4).toFixed(2)}px)`}}>
+          <CText cx={640} cy={53.5} size={33} weight={700} letterSpacing={1}>{e.text}</CText>
+          {e.tech ? <TechText cx={640} cy={94} text={e.tech} fontSize={30} scaleX={0.8} /> : null}
+        </div>
+      </div>
+    );
+  }
+  // 章首条目（章节卡之后）与过渡结束后：原 TopCapsule（SoftIn 在 n≥8 已满态，几何与上面一致，无缝）
   return <TopCapsule N={N} f0={e.from} text={e.text} w={w} tech={e.tech} opacity={fadeTail} />;
 };
 
 // ---------- 流程轨（第 2、3 章）----------
 export type RailSpec = {steps: string[]; switches: number[]; from: number; to: number};
-export const RAILS: RailSpec[] = VIDEO.rails.map((r) => ({steps: r.steps, switches: r.switchS.map((id) => S(id).from), from: S(r.fromS).from - 8, to: S(r.toS).to + 2}));
+export const RAILS: RailSpec[] = (SENTENCES.length ? VIDEO.rails : []).map((r) => ({steps: r.steps, switches: r.switchS.map((id) => S(id).from), from: S(r.fromS).from - 8, to: S(r.toS).to + 2}));
 const RAIL_CX = [240, 440, 640, 840, 1040];
 const RAIL_W = 150, RAIL_H = 44, RAIL_Y = 118;
 export const Rail: React.FC<{spec: RailSpec}> = ({spec}) => {
@@ -147,17 +170,37 @@ export const Rail: React.FC<{spec: RailSpec}> = ({spec}) => {
 // ---------- 片尾 ----------
 // 压黑层挂在内容之上（Main 里 SHOTS_OVERLAY_TOP 排在所有内容组之后、进度条之下），从末句结束前 endingFade 帧起压黑，末镜头内容在被完全盖住后才结束；
 // 最后 30 帧再用 aboveBar 层把进度条也压黑 → 末段纯黑。
-const LAST = SENTENCES[SENTENCES.length - 1];
-export const ENDING_RANGE: [number, number] = [LAST.to - VIDEO.endingFade, TOTAL_FRAMES];
+const LAST_TO = SENTENCES[SENTENCES.length - 1]?.to ?? TOTAL_FRAMES - 60;
+export const ENDING_RANGE: [number, number] = [LAST_TO - VIDEO.endingFade, TOTAL_FRAMES];
 export const Ending: React.FC = () => {
   const N = useCurrentFrame() + ENDING_RANGE[0];
   const n = N - ENDING_RANGE[0];
   const op = fadeIn(n, VIDEO.endingFade);
   return <div style={{position: 'absolute', inset: 0, background: '#000', opacity: op}} />;
 };
-export const ENDING_TOP_RANGE: [number, number] = [TOTAL_FRAMES - 30, TOTAL_FRAMES];
+/** 片尾署名（压黑之后、进度条压黑之前）：完整书名 / 作者 / 出版社，停 ≈3 s，让片头 tagline 读不完的信息在这里补齐（QC v1 C1 #1） */
+export const END_CREDIT_RANGE: [number, number] = [LAST_TO + 1, TOTAL_FRAMES - 26];  // 9110–9182：末句字幕 9109 结束、内容已全黑后再出署名卡（满态 ≈56 帧）；之后 26 帧纯黑
+export const EndCredit: React.FC = () => {
+  const N = useCurrentFrame() + END_CREDIT_RANGE[0];
+  const n = N - END_CREDIT_RANGE[0];
+  const len = END_CREDIT_RANGE[1] - END_CREDIT_RANGE[0];
+  const op = Math.min(fadeIn(n, 8), 1 - clampFrames(N - (END_CREDIT_RANGE[1] - 8), 8));
+  const c = VIDEO.credit;
+  if (!c) return null;
+  return (
+    <div style={{position: 'absolute', inset: 0, opacity: op}}>
+      <CText cx={640} cy={300} size={26} weight={500} color={GREY} letterSpacing={4}>{c.kicker}</CText>
+      <CText cx={640} cy={352} size={40} weight={700} color={WHITE}>{c.title}</CText>
+      <CText cx={640} cy={404} size={26} weight={500} color={GREY}>{c.byline}</CText>
+      <div style={{position: 'absolute', left: 560, top: 440, width: 160, height: 2, background: 'rgba(255,255,255,0.35)', transform: `scaleX(${fadeIn(n - 6, 16)})`}} />
+      <CText cx={640} cy={476} size={22} weight={500} color={GREY}>{c.note}</CText>
+    </div>
+  );
+};
+// QC v1 C4 #2：进度条不能在画面全黑后孤悬 2 s → 进度条随 endingFade 一起压黑（aboveBar 层），署名卡在其上（见 index.ts 层序）
+export const ENDING_TOP_RANGE: [number, number] = [LAST_TO - VIDEO.endingFade, TOTAL_FRAMES];
 export const EndingTop: React.FC = () => {
   const N = useCurrentFrame() + ENDING_TOP_RANGE[0];
-  const op = fadeIn(N - ENDING_TOP_RANGE[0], 20);
+  const op = fadeIn(N - ENDING_TOP_RANGE[0], VIDEO.endingFade);
   return <div style={{position: 'absolute', inset: 0, background: '#000', opacity: op}} />;
 };

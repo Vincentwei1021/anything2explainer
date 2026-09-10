@@ -3,7 +3,7 @@ import {useCurrentFrame} from 'remotion';
 import {FONT_HEAVY} from './lib';
 import {kf} from './easing';
 import {fitSize} from './textfit';
-import {TOTAL_FRAMES, CHAPTER_STARTS} from './timeline';
+import {TOTAL_FRAMES, CHAPTER_STARTS, SENTENCES} from './timeline';
 
 /**
  * 底部章节进度条（半透明条体 y687–720、填充右缘 x=1280·N/TOTAL、n−1 根分隔线、章节名粗黑斜体 24px），来源于一条 MG 科普原片的实测模型（半透明条体 y687–720、填充右缘 x=1280·N/TOTAL、3 根分隔线、4 个章节名粗黑斜体 24px），
@@ -18,7 +18,12 @@ const NCH = Math.max(1, CHAPTER_STARTS.length);
 export const DIVIDERS = Array.from({length: NCH - 1}, (_, i) => Math.round(((i + 1) * 1280) / NCH)); // n 章等宽分隔
 export const DIVIDER_W = 4;
 const CENTERS = Array.from({length: NCH}, (_, i) => Math.round(((i + 0.5) * 1280) / NCH));
-export const CHAPTERS: Array<{text: string; cx: number; from: number}> = CHAPTER_STARTS.map((c, i) => ({text: c.title, cx: CENTERS[i] ?? 640, from: c.from}));
+// 当前章高亮切在**章节卡起始帧**（上一章末句 to+3），不是本章首句帧——否则章节卡宣告新章的 45 帧里进度条还亮着上一章（QC v1 C2 #1；lessons「覆盖层」）
+const cardStart = (c: {n: number; from: number}) => {
+  const prev = [...SENTENCES].reverse().find((x) => x.chapter < c.n);
+  return prev ? prev.to + 3 : c.from;
+};
+export const CHAPTERS: Array<{text: string; cx: number; from: number}> = CHAPTER_STARTS.map((c, i) => ({text: c.title, cx: CENTERS[i] ?? 640, from: i === 0 ? c.from : cardStart(c)}));
 export const CHAPTER_HIGHLIGHT_END = TOTAL_FRAMES + 1;
 export const LABEL_SIZE = 24;
 export const LABEL_SLOT_W = Math.round(1280 / NCH) - 30; // 章名不得压到分隔线上（英文章名长，自动缩到 17px 兜底）

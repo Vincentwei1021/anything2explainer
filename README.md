@@ -192,3 +192,9 @@ Remotion itself has its own license terms for companies — see [remotion.dev/li
 - Not for: replicating an existing video, talking-head presenter footage, or films that are mostly live action.
 - Once the narration is voiced, the words are frozen — shot code hard-codes frame numbers, so a rewrite re-times everything.
 - Parallel builds are demanding: several agents bundle Remotion at once, so keep ≥5 GB free; tmux panes are capped, so past ~12 you have to dispatch in waves.
+
+## Star History
+
+<a href="https://star-history.com/#Vincentwei1021/anything2explainer&Date">
+  <img src="https://api.star-history.com/svg?repos=Vincentwei1021/anything2explainer&type=Date" alt="Star History Chart" width="600">
+</a>

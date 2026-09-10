@@ -22,6 +22,8 @@ export const VIDEO = {
    * 英文片：rest 留空 ''（不显示），big 放主词/缩写，en 放全称或副标，tagline 一句话钩子。
    */
   title: {big: 'RAG', rest: '与知识库', en: 'Retrieval-Augmented Generation', tagline: '让大模型开卷考试'},
+  /** 片尾署名卡（内容压黑 + 末句字幕结束后 ≈2 s，aboveBar；不需要就设为 null） */
+  credit: {kicker: 'BASED ON', title: 'Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks', byline: 'Lewis et al. · NeurIPS 2020', note: 'all visuals drawn in code'} as {kicker: string; title: string; byline: string; note: string} | null,
   /** 章节英文副标（顺序对应 narration 的 CHAPTER 1..n；章节卡从第 2 章起显示） */
   chapterTech: ['Why RAG', 'Indexing', 'Retrieval & Generation', 'Evaluation & Advanced RAG'],
   /** 顶部 HUD 胶囊（当前小节名）：按句 id 区间；相邻条目之间自动无空档；跨章节卡自动淡出。 */
