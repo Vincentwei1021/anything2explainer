@@ -72,6 +72,34 @@ pip install kokoro soundfile && brew install espeak-ng
 
 `scipy` 只给质检脚本 `frame_metrics.py` 用。脚本是 zsh + Python 3，在 macOS 上开发与验证；Linux 应可用，Windows 未测试。
 
+### Linux / 树莓派（ARM）
+
+已在树莓派 5（ARM64、Debian trixie、Python 3.13）上跑通。与 macOS 有三处不同：
+
+```bash
+sudo apt install zsh espeak-ng                 # 脚本是 #!/bin/zsh；espeak-ng 供 kokoro/piper 的 G2P
+
+# Remotion 没有 linux-arm64 的无头浏览器 → 指向系统 Chromium：
+sudo apt install chromium                       # 或 chromium-browser
+export REMOTION_BROWSER_EXECUTABLE=/usr/bin/chromium   # 由 template/remotion.config.ts 读取（macOS 上无副作用）
+```
+
+**Linux/ARM 上的配音。** 默认英文引擎 `kokoro` 在 ARM/Python 3.13 上很难装：它固定了旧版 numpy（无 aarch64/py3.13 轮子，只能源码编译，会失败），且依赖 spaCy → `blis`（无 aarch64 轮子、编译不过）。补了两个能干净安装的本地引擎，用 `TTS_ENGINE` 指定，二者都走既有的“逐字幕块合成”路径：
+
+```bash
+# kokoro_onnx —— 音色自然，onnxruntime（不依赖 torch/spaCy）。模型与声音库从
+#   github.com/thewh1teagle/kokoro-onnx 的 releases 下（kokoro-v1.0.onnx、voices-v1.0.bin）
+pip install kokoro-onnx
+TTS_ENGINE=kokoro_onnx KOKORO_ONNX_MODEL=…/kokoro-v1.0.onnx KOKORO_ONNX_VOICES=…/voices-v1.0.bin \
+  KOKORO_ONNX_VOICE=am_michael python3 scripts/tts_build.py
+
+# piper —— 最快的本地引擎，音色偏机械，作树莓派原生兜底。语音 .onnx 从 github.com/rhasspy/piper 下
+pip install piper-tts
+TTS_ENGINE=piper PIPER_MODEL=…/en_US-ryan-medium.onnx python3 scripts/tts_build.py
+```
+
+`edge` 引擎（自然、免费、有词级边界）在 Linux 上也能用，且不需要本地模型——它是调微软云端接口：`TTS_ENGINE=edge VOICE=en-US-AndrewNeural python3 scripts/tts_build.py`。
+
 ## 用法
 
 在 Claude Code 或 Codex 里直接说要做什么，skill 会被触发：
