@@ -18,6 +18,10 @@ TTS 引擎（`TTS_ENGINE`，默认 `auto` = 按解说词语言选；**跑之前�
   kokoro   英文默认。kokoro-82m 本地推理（`pip install kokoro soundfile` + `brew install espeak-ng`）。
            KOKORO_VOICE=am_liam（Liam，男声，与中文云希同定位）KOKORO_LANG=a KOKORO_SPEED=1.0
   kokoro 没有词边界 → 改为「逐字幕块分别合成再拼接」，块起始帧因此也是精确的（CHUNK_PAD 调块间静音）。
+  piper       Linux/ARM（含树莓派）本地配音。onnxruntime 版 VITS，无 torch/spacy。`pip install piper-tts` +
+              一个 .onnx 语音，路径经 PIPER_MODEL 传入；无词边界，同 kokoro 逐块合成。装得最快，音色一般。
+  kokoro_onnx Linux/ARM 本地配音，音色自然。onnxruntime 版 kokoro，无 torch/spacy（比 `kokoro` 引擎好装）。
+              `pip install kokoro-onnx` + 模型 KOKORO_ONNX_MODEL / 声音库 KOKORO_ONNX_VOICES；KOKORO_ONNX_VOICE 默认 am_michael。
   用户有别的 TTS 偏好时不走本脚本：让他给成品配音 wav，按逐句/逐块时间轴手填 timeline.ts 与 subs.ts。
 其它环境变量：GAP/CHAPTER_GAP/LEAD/TAIL（帧）、EDGE_TRIES（edge 每句最多试几次，端点会间歇性返回空音频）。
 """
@@ -39,6 +43,14 @@ KOKORO_VOICE = os.environ.get('KOKORO_VOICE', 'am_liam')
 KOKORO_LANG = os.environ.get('KOKORO_LANG', 'a')       # a=American English, b=British
 KOKORO_SPEED = float(os.environ.get('KOKORO_SPEED', 1.0))
 KOKORO_SR = 24000
+# piper（TTS_ENGINE=piper）：本地/ARM 友好，模型路径经环境变量传入（无默认，缺省即报错提示）
+PIPER_MODEL = os.environ.get('PIPER_MODEL', '')
+PIPER_VOICE_NAME = os.path.basename(PIPER_MODEL).replace('.onnx', '') if PIPER_MODEL else 'piper'
+# kokoro_onnx（TTS_ENGINE=kokoro_onnx）：onnxruntime 版 kokoro，无 torch/spacy
+KOKORO_ONNX_MODEL = os.environ.get('KOKORO_ONNX_MODEL', '')     # 例：kokoro-v1.0.onnx
+KOKORO_ONNX_VOICES = os.environ.get('KOKORO_ONNX_VOICES', '')  # 例：voices-v1.0.bin
+KOKORO_ONNX_VOICE = os.environ.get('KOKORO_ONNX_VOICE', 'am_michael')
+KOKORO_ONNX_LANG = os.environ.get('KOKORO_ONNX_LANG', 'en-us')
 CHUNK_PAD = float(os.environ.get('CHUNK_PAD', 0.06))  # 无词边界引擎：块间静音秒
 EDGE_TRIES = int(os.environ.get('EDGE_TRIES', 4))     # edge-tts 每句最多试几次（端点会间歇性返回空音频）
 GAP = int(os.environ.get('GAP', 10))          # 句间空白帧
@@ -47,8 +59,8 @@ LEAD = int(os.environ.get('LEAD', 40))        # 片头静音帧
 TAIL = int(os.environ.get('TAIL', 90))        # 片尾静音帧
 CACHE = f'{ROOT}/audio/cache'
 os.makedirs(CACHE, exist_ok=True)
-if ENGINE not in ('auto', 'edge', 'kokoro'):
-    raise SystemExit(f'未知 TTS_ENGINE={ENGINE}（可选 auto / edge / kokoro）')
+if ENGINE not in ('auto', 'edge', 'kokoro', 'piper', 'kokoro_onnx'):
+    raise SystemExit(f'未知 TTS_ENGINE={ENGINE}（可选 auto / edge / kokoro / piper / kokoro_onnx）')
 
 
 def parse(path):
@@ -76,7 +88,7 @@ def parse(path):
 
 
 def cache_path(text, ext):
-    sig = f'{ENGINE}|{VOICE}|{RATE}|{KOKORO_VOICE}|{KOKORO_LANG}|{KOKORO_SPEED}|{text}'
+    sig = f'{ENGINE}|{VOICE}|{RATE}|{KOKORO_VOICE}|{KOKORO_ONNX_VOICE}|{KOKORO_LANG}|{KOKORO_SPEED}|{text}'
     return f'{CACHE}/{hashlib.sha1(sig.encode()).hexdigest()[:16]}{ext}'
 
 
@@ -208,6 +220,55 @@ def synth_kokoro(text):
     return au
 
 
+_piper = None
+
+
+def synth_piper(text):
+    """piper-tts：本地推理（onnxruntime，Linux/ARM/树莓派友好，无 torch/spacy），无词边界 → 逐块合成。
+    模型原生采样率写 wav；decode() 再用 ffmpeg 重采样到 SR。需 PIPER_MODEL 指向一个 .onnx 语音。"""
+    global _piper
+    if not PIPER_MODEL:
+        raise SystemExit('TTS_ENGINE=piper 需要 PIPER_MODEL 指向一个 piper .onnx 语音'
+                         '（pip install piper-tts；语音见 github.com/rhasspy/piper voices）')
+    au = cache_path(text, '.wav')
+    if os.path.exists(au):
+        return au
+    if _piper is None:
+        try:
+            from piper import PiperVoice
+        except ImportError:
+            raise SystemExit('TTS_ENGINE=piper 需要 piper：pip install piper-tts')
+        _piper = PiperVoice.load(PIPER_MODEL)
+    import wave
+    with wave.open(au, 'wb') as w:
+        _piper.synthesize_wav(text, w)
+    return au
+
+
+_kokoro_onnx = None
+
+
+def synth_kokoro_onnx(text):
+    """kokoro-onnx：onnxruntime 版 kokoro（Linux/ARM 友好，无 torch/spacy；比 `kokoro` 引擎好装、音色自然），
+    24kHz，无词边界 → 逐块合成。需 KOKORO_ONNX_MODEL / KOKORO_ONNX_VOICES 两个模型文件。"""
+    global _kokoro_onnx
+    if not (KOKORO_ONNX_MODEL and KOKORO_ONNX_VOICES):
+        raise SystemExit('TTS_ENGINE=kokoro_onnx 需要 KOKORO_ONNX_MODEL 与 KOKORO_ONNX_VOICES'
+                         '（pip install kokoro-onnx；模型见 github.com/thewh1teagle/kokoro-onnx releases）')
+    au = cache_path(text, '.wav')
+    if os.path.exists(au):
+        return au
+    if _kokoro_onnx is None:
+        try:
+            from kokoro_onnx import Kokoro
+        except ImportError:
+            raise SystemExit('TTS_ENGINE=kokoro_onnx 需要 kokoro-onnx：pip install kokoro-onnx')
+        _kokoro_onnx = Kokoro(KOKORO_ONNX_MODEL, KOKORO_ONNX_VOICES)
+    s, sr = _kokoro_onnx.create(text, voice=KOKORO_ONNX_VOICE, speed=KOKORO_SPEED, lang=KOKORO_ONNX_LANG)
+    write_wav(au, np.asarray(s, dtype=np.float32).reshape(-1), sr)
+    return au
+
+
 def decode(mp3):
     out = subprocess.run(['ffmpeg', '-v', 'error', '-i', mp3, '-f', 'f32le', '-ac', '1', '-ar', str(SR), '-'], capture_output=True, check=True).stdout
     return np.frombuffer(out, dtype=np.float32).copy()
@@ -269,10 +330,11 @@ async def synth_sentence(chunks, sep=''):
         x, lead_cut = trim_edges(decode(au))
         dur = len(x) / SR
         return x, chunk_starts(text, chunks, words, lead_cut, dur, sep), dur
+    chunk_synth = {'piper': synth_piper, 'kokoro_onnx': synth_kokoro_onnx}.get(ENGINE, synth_kokoro)
     pad = np.zeros(int(CHUNK_PAD * SR), dtype=np.float32)
     parts = []; starts = []; pos = 0.0
     for i, c in enumerate(chunks):
-        xi, _ = trim_edges(decode(synth_kokoro(c)))
+        xi, _ = trim_edges(decode(chunk_synth(c)))
         if i:
             parts.append(pad); pos += len(pad) / SR
         starts.append(pos)
@@ -351,7 +413,7 @@ async def main(narr):
             print(f"    f{sb['from']} (≈{w:.0f}px{'，会折两行' if w > SUB_MAX_W * 1.3 else ''}) {sb['text']}")
     # 输出
     tl = {'fps': FPS, 'total_frames': total, 'engine': ENGINE,
-          'voice': VOICE if ENGINE == 'edge' else KOKORO_VOICE,
+          'voice': {'edge': VOICE, 'piper': PIPER_VOICE_NAME, 'kokoro_onnx': KOKORO_ONNX_VOICE}.get(ENGINE, KOKORO_VOICE),
           'rate': RATE if ENGINE == 'edge' else KOKORO_SPEED,
           'gap': GAP, 'chapter_gap': CHAPTER_GAP, 'lead': LEAD, 'tail': TAIL,
           'lang': lang, 'chapters': chapters, 'sentences': sentences, 'chars': total_chars, 'words': total_words,
