@@ -13,6 +13,8 @@ case "$SLUG" in
 esac
 mkdir -p "$DEST"
 rsync -a --exclude node_modules --exclude 'build*' --exclude renders --exclude fin_frames --exclude stills --exclude 'audio/cache' "$HERE/" "$DEST/"
-sed -i '' "s/slug: 'demo'/slug: '$SLUG'/" "$DEST/src/config.ts"
+# portable in-place edit: `-i.bak` + rm works on both BSD/macOS and GNU/Linux sed
+# (BSD `sed -i ''` breaks on GNU sed, which reads '' as the script and config.ts as a file)
+sed -i.bak "s/slug: 'demo'/slug: '$SLUG'/" "$DEST/src/config.ts" && rm -f "$DEST/src/config.ts.bak"
 mkdir -p "$DEST/public/assets/$SLUG" "$DEST/script" "$DEST/research" "$DEST/qc" "$DEST/stills" "$DEST/renders"
 cd "$DEST" && npm install --silent && npx tsc --noEmit && echo "project ready: $DEST (slug=$SLUG)"

@@ -72,6 +72,34 @@ pip install kokoro soundfile && brew install espeak-ng
 
 `scipy` is only used by the QC script `frame_metrics.py`. The shell scripts are zsh + Python 3, developed and verified on macOS; Linux should work, Windows is untested.
 
+### Linux / Raspberry Pi (ARM)
+
+Verified on a Raspberry Pi 5 (ARM64, Python 3.13). Three things differ from macOS:
+
+```bash
+sudo apt install zsh espeak-ng                 # scripts are #!/bin/zsh; espeak-ng for kokoro/piper G2P
+
+# Remotion has no linux-arm64 headless browser → point it at system Chromium:
+sudo apt install chromium                       # or chromium-browser
+export REMOTION_BROWSER_EXECUTABLE=/usr/bin/chromium   # read by template/remotion.config.ts (no-op on macOS)
+```
+
+**TTS on Linux/ARM.** `kokoro` (the default English engine) is hard to install on ARM/Python 3.13 (it pins an old numpy and pulls spaCy → blis, which lack aarch64 wheels). Two local engines that install cleanly instead — pass one via `TTS_ENGINE`:
+
+```bash
+# kokoro_onnx — natural voice, onnxruntime (no torch/spaCy). Download model + voices from
+#   github.com/thewh1teagle/kokoro-onnx releases (kokoro-v1.0.onnx, voices-v1.0.bin)
+pip install kokoro-onnx
+TTS_ENGINE=kokoro_onnx KOKORO_ONNX_MODEL=…/kokoro-v1.0.onnx KOKORO_ONNX_VOICES=…/voices-v1.0.bin \
+  KOKORO_ONNX_VOICE=am_michael python3 scripts/tts_build.py
+
+# piper — fastest local, robotic; a Pi-native fallback. Voice .onnx from github.com/rhasspy/piper
+pip install piper-tts
+TTS_ENGINE=piper PIPER_MODEL=…/en_US-ryan-medium.onnx python3 scripts/tts_build.py
+```
+
+The `edge` engine (natural, free, word-boundary timing) also works on Linux and needs no local model — it's a cloud call to Microsoft: `TTS_ENGINE=edge VOICE=en-US-AndrewNeural python3 scripts/tts_build.py`.
+
 ## Usage
 
 In Claude Code or Codex, just say what you want. The skill triggers itself:
