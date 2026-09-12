@@ -134,7 +134,7 @@ export const Hud: React.FC = () => {
   return <TopCapsule N={N} f0={e.from} text={e.text} w={w} tech={e.tech} opacity={fadeTail} />;
 };
 
-// ---------- 流程轨（第 2、3 章）----------
+// ---------- 流程轨（只在 config.rails 标了轨的章出现）----------
 export type RailSpec = {steps: string[]; switches: number[]; from: number; to: number};
 export const RAILS: RailSpec[] = (SENTENCES.length ? VIDEO.rails : []).map((r) => ({steps: r.steps, switches: r.switchS.map((id) => S(id).from), from: S(r.fromS).from - 8, to: S(r.toS).to + 2}));
 const RAIL_CX = [240, 440, 640, 840, 1040];
