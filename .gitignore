@@ -15,3 +15,5 @@ template/分镜表.md
 template/render.done
 template/fin_count.txt
 .synapse/
+
+__pycache__/

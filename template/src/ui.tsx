@@ -49,8 +49,8 @@ export const stagger = (i: number, step = 2) => i * step;
 export const abs = (x: number, y: number, w?: number, h?: number): React.CSSProperties => ({position: 'absolute', left: x, top: y, width: w, height: h});
 
 
-/** 非闪烁入场（用户裁定：glitch 只给重点词，其余文字/标签一律用它）：len 帧 easeOut 淡入 + dy px 上浮；n<0 不渲染。签名与 GlitchIn 对齐（N,f0,children,style），可直接替换。 */
-// ---- 入场 / 离场 / 混色（协议提到的工具必须在共用层真的存在；来自 G1 g1ui.tsx，各组直接 import，不要各写一份）----
+/** 非闪烁入场（规范：glitch 只给重点词，其余文字/标签一律用它）：len 帧 easeOut 淡入 + dy px 上浮；n<0 不渲染。签名与 GlitchIn 对齐（N,f0,children,style），可直接替换。 */
+// ---- 入场 / 离场 / 混色（协议提到的工具必须在共用层真的存在；各组直接 import，不要各写一份）----
 /** 首帧即有亮度的淡入：n<0 → 0；n=0 ≈ 25%（len 8）/ 32%（len 6）；easeOut 2.5。镜头首帧入场用它，不要用 fadeIn(0)=0 */
 export const softOp = (n: number, len = 8) => (n < 0 ? 0 : 1 - Math.pow(1 - clamp01((n + 1) / (len + 1)), 2.5));
 /** 镜头首帧元素用：首帧 ≈57%（lessons：softOp(n+1,6)），保证首帧能被空场判据量到 */
@@ -181,7 +181,7 @@ export const Cross: React.FC<{cx: number; cy: number; size?: number; color?: str
   );
 };
 
-// ---- 语义图标（RAG 主题）----
+// ---- 语义图标（通用：文档 / 数据库 / 文本块卡 / 模型；按主题在此补 2–5 个）----
 /** 文档页：黑底白边 + 折角 + 文本线条（lines 条），label 在下方 */
 export const DocIcon: React.FC<{x: number; y: number; w?: number; h?: number; lines?: number; color?: string; fill?: string; sw?: number; label?: string; labelSize?: number; opacity?: number; accent?: string; glow?: string}> = ({x, y, w = 64, h = 80, lines = 4, color = WHITE, fill = '#000', sw = 2, label, labelSize = 22, opacity = 1, accent, glow}) => {
   const f = w * 0.3;
@@ -200,7 +200,7 @@ export const DocIcon: React.FC<{x: number; y: number; w?: number; h?: number; li
     </div>
   );
 };
-/** 数据库圆柱（向量数据库 / 索引） */
+/** 数据库圆柱（数据库 / 索引 / 存储） */
 export const DBIcon: React.FC<{cx: number; cy: number; w?: number; h?: number; color?: string; fill?: string; sw?: number; opacity?: number; label?: string; labelSize?: number; accent?: string}> = ({cx, cy, w = 120, h = 130, color = WHITE, fill = '#000', sw = 2.5, opacity = 1, label, labelSize = 24, accent}) => {
   const ry = w * 0.18;
   const x0 = cx - w / 2, y0 = cy - h / 2;
@@ -244,7 +244,7 @@ export const LLMIcon: React.FC<{cx: number; cy: number; size?: number; color?: s
 };
 /** 顶部 HUD 胶囊（沿用 (533,28,216,51) 位置，宽随文字）：GlitchIn 入场；tech 为其下方的英文副标（中心 y 92） */
 export const TopCapsule: React.FC<{N: number; f0: number; text: string; w?: number; fill?: string; tech?: string; opacity?: number; textSize?: number; glitch?: boolean}> = ({N, f0, text, w = 216, fill = PURPLE, tech, opacity = 1, textSize = 33, glitch = false}) => (
-  // 用户裁定（2026-09-06）：闪烁只给重点词；HUD 换词默认用 SoftIn 淡入，glitch 需显式开
+  // 规范：闪烁只给重点词；HUD 换词默认用 SoftIn 淡入，glitch 需显式开
   glitch ? (
   <GlitchIn N={N} f0={f0} style={{opacity}}>
     <Pill x={640 - w / 2} y={28} w={w} h={51} fill={fill} sw={2} text={text} fontSize={textSize} weight={700} letterSpacing={1} textDy={TEXT_DY} style={{filter: PILL_SHADOW}} />
@@ -292,7 +292,7 @@ export const Counter: React.FC<{cx: number; cy: number; value: string | number; 
   </CText>
 );
 
-// ---- 语义图标（AI 系统 / 性能工程主题，第四片补充；按主题取用或删减）----
+// ---- 语义图标第二组（芯片 / 时间条 / 仪表 / 集群网格 / 机架 / 人形 / 代码卡 / 仓库卡；按主题取用或删减）----
 /** GPU 芯片：四边引脚 + 黑底白边圆角本体 + 内部核心方阵（lit 0–1 为点亮比例，行优先；点亮核紫、未点亮灰边）；glow 紫柔光（当主角时开）；label 在下方。size 是含引脚的外接边长。 */
 export const GPUChip: React.FC<{cx: number; cy: number; size?: number; color?: string; accent?: string; lit?: number; grid?: number; opacity?: number; label?: string; labelSize?: number; glow?: boolean; pins?: boolean; sw?: number; glowK?: number}> = ({cx, cy, size = 170, color = WHITE, accent = PURPLE, lit = 1, grid = 6, opacity = 1, label, labelSize = 26, glow = true, pins = true, sw = 3, glowK = 1}) => {
   const s = size;

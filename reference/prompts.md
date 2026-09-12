@@ -25,7 +25,7 @@
 你是成片终检员。v<N> 已渲。三件事写到 <项目根>/qc/qc_v<N>_final.md：① 闪烁合规：全片 <镜头数> 个镜头各挑 2–3 个元素入场帧做 f0…f0+12 亮度曲线，列出实际闪烁元素，与分镜表白名单逐条对照（白名单外仍闪 → 中；白名单内漏闪 → 低；HUD 换词应为淡入）；② 上一轮遗留项逐条复验；③ 每 40 帧 contact sheet 回归通读；④ 跑 `scripts/frame_metrics.py` 复核构图与光（空场 / 主角无光 / 碎屑）与 `scripts/motion_check.py --frames <项目根>/fin_frames` 复测持续动作（**组级读数偏松，成片复测才是判据**：静止 >40% 或最长 >1 s 逐个看帧），高光时刻清单与运镜清单逐条看帧确认到位。不改源码。最终回复：白名单外 N 处 / 漏闪 N 处、遗留复验结果、frame_metrics 高/中/低条数、新问题条数与最严重 3 条。
 
 ## 派单与看门狗（主会话自用）
-- 并发上限约 12 个 pane；完成的 agent 及时 TaskStop 释放；被 API 错误打死的 agent 先 SendMessage 叫一次，10 分钟零产出则 TaskStop 重派（"复用磁盘上的半成品、只补未完成部分"）。
+- 并发受本机 / harness 的 pane 上限约束（派单前 ListAgents 看全机占用，稳妥按 4 个一波）；完成的 agent 及时 TaskStop 释放；被 API 错误打死的 agent 先 SendMessage 叫一次，10 分钟零产出则 TaskStop 重派（"复用磁盘上的半成品、只补未完成部分"）。ListAgents / SendMessage / TaskStop 是 Claude Code 的工具名，其它 harness 用等价操作。
 - 每 30–40 分钟核一次各组 index.ts / BUILD_NOTES 的 mtime。
 - 构建组的裁定请求一句话回；相邻组共用元素时指定 import 方向，不要让两组互相对齐。
 - 消息可能在 agent 写最终报告时被吞：若其 idle 通知仍说"等待决定"，重发一次。

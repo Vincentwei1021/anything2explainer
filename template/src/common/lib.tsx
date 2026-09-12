@@ -52,7 +52,7 @@ export const FONT_HEAVY = `'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', sa
 export const FONT_TECH = `'Exo 2', 'Helvetica Neue', sans-serif`; // 英文技术词：紫色粗斜体 + scaleX .8
 export const FONT_WIDE = `'Audiowide', 'Orbitron', sans-serif`; // 宽体展示字（片名 / 大写缩写）
 export const FONT_ORB = `'Orbitron', 'Audiowide', sans-serif`; // 数字 / 章序号 / HUD 计数
-export const FONT_MONO = `'SF Mono', Menlo, Consolas, monospace`; // 代码 / 向量数字
+export const FONT_MONO = `'SF Mono', Menlo, Consolas, monospace`; // 代码 / 等宽数字
 export const FONT_SERIF = `'Times New Roman', Times, serif`; // 公式
 export const FONT_EN = `'Helvetica Neue', Helvetica, Arial, sans-serif`;
 

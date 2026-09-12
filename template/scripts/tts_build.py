@@ -15,13 +15,15 @@
 TTS 引擎（`TTS_ENGINE`，默认 `auto` = 按解说词语言选；**跑之前先问用户有没有偏好的 TTS**，见 SKILL.md 确认点 3）：
   edge     中文默认。edge-tts 云端合成，有词级边界 → 字幕节拍最准。VOICE=zh-CN-YunxiNeural RATE=+8%
            词边界要显式请求（boundary='WordBoundary'，7.2.0 起的默认值不给），否则字幕起点会静默退化成插值。
-  kokoro   英文默认。kokoro-82m 本地推理（`pip install kokoro soundfile` + `brew install espeak-ng`）。
+  kokoro   英文默认。kokoro-82m 本地推理（`pip install kokoro soundfile` + espeak-ng：macOS `brew install espeak-ng` / Linux `apt install espeak-ng`）。
            KOKORO_VOICE=am_liam（Liam，男声，与中文云希同定位）KOKORO_LANG=a KOKORO_SPEED=1.0
   kokoro 没有词边界 → 改为「逐字幕块分别合成再拼接」，块起始帧因此也是精确的（CHUNK_PAD 调块间静音）。
   piper       Linux/ARM（含树莓派）本地配音。onnxruntime 版 VITS，无 torch/spacy。`pip install piper-tts` +
               一个 .onnx 语音，路径经 PIPER_MODEL 传入；无词边界，同 kokoro 逐块合成。装得最快，音色一般。
   kokoro_onnx Linux/ARM 本地配音，音色自然。onnxruntime 版 kokoro，无 torch/spacy（比 `kokoro` 引擎好装）。
               `pip install kokoro-onnx` + 模型 KOKORO_ONNX_MODEL / 声音库 KOKORO_ONNX_VOICES；KOKORO_ONNX_VOICE 默认 am_michael。
+  读音覆写表 PRONOUNCE（见下）只作用于 `kokoro` 引擎（misaki 的 [词](/音标/) 语法）；piper / kokoro_onnx 不认这个语法，
+  缩写读错时改写解说词或换引擎。
   用户有别的 TTS 偏好时不走本脚本：让他给成品配音 wav，按逐句/逐块时间轴手填 timeline.ts 与 subs.ts。
 其它环境变量：GAP/CHAPTER_GAP/LEAD/TAIL（帧）、EDGE_TRIES（edge 每句最多试几次，端点会间歇性返回空音频）。
 """
@@ -88,7 +90,7 @@ def parse(path):
 
 
 def cache_path(text, ext):
-    sig = f'{ENGINE}|{VOICE}|{RATE}|{KOKORO_VOICE}|{KOKORO_ONNX_VOICE}|{KOKORO_LANG}|{KOKORO_SPEED}|{text}'
+    sig = f'{ENGINE}|{VOICE}|{RATE}|{KOKORO_VOICE}|{KOKORO_ONNX_VOICE}|{KOKORO_ONNX_LANG}|{PIPER_VOICE_NAME}|{KOKORO_LANG}|{KOKORO_SPEED}|{text}'
     return f'{CACHE}/{hashlib.sha1(sig.encode()).hexdigest()[:16]}{ext}'
 
 
@@ -176,15 +178,11 @@ async def synth_edge(text):
 
 _kokoro = None
 
-# kokoro 读音覆写（只影响送给 TTS 的文本，字幕仍显示原词）。语法是 kokoro/misaki 的 [词](/音标/)。
-# 实测 kokoro 会把 CUDA/NIXL/MIG/DeepGEMM 逐字母拼读、把 v5.0 读成 "v five zero"，故在此覆写；按片子需要增删。
-PRONOUNCE = {
-    'CUDA': '[CUDA](/kˈudə/)',
-    'NIXL': '[NIXL](/nˈɪksəl/)',
-    'MIG': '[MIG](/mˈɪɡ/)',
-    'DeepGEMM': '[DeepGEMM](/dˌipʤˈɛm/)',
-    'v5.0': '[v5.0](/vˈi fˈIv pYnt ˈO/)',
-}
+# kokoro 读音覆写（只影响送给 TTS 的文本，字幕仍显示原词）。语法是 kokoro/misaki 的 [词](/音标/)，
+# **只对 `kokoro` 引擎生效**（piper / kokoro_onnx 走 espeak 音素化，不认这个语法，会把括号读出来）。
+# 模板默认为空，按本片增补：kokoro 常把生僻缩写逐字母拼读、把 "v5.0" 读成 "v five zero"，合成前 dump 音素检查。
+# 写法示例：'CUDA': '[CUDA](/kˈudə/)'，'v5.0': '[v5.0](/vˈi fˈIv pYnt ˈO/)'
+PRONOUNCE = {}
 
 
 def apply_pronounce(text):
@@ -204,7 +202,8 @@ def synth_kokoro(text):
         try:
             from kokoro import KPipeline
         except ImportError:
-            raise SystemExit('TTS_ENGINE=kokoro 需要 kokoro：pip install kokoro soundfile；英文 G2P 另需 espeak-ng（brew install espeak-ng）')
+            raise SystemExit('TTS_ENGINE=kokoro 需要 kokoro：pip install kokoro soundfile；英文 G2P 另需 espeak-ng（macOS brew / Linux apt install espeak-ng）。'
+                             'ARM / Python 3.13 上装不动 kokoro 就换 TTS_ENGINE=kokoro_onnx 或 piper（见文件头）')
         _kokoro = KPipeline(lang_code=KOKORO_LANG)
     parts = []
     for r in _kokoro(text, voice=KOKORO_VOICE, speed=KOKORO_SPEED):
@@ -225,7 +224,8 @@ _piper = None
 
 def synth_piper(text):
     """piper-tts：本地推理（onnxruntime，Linux/ARM/树莓派友好，无 torch/spacy），无词边界 → 逐块合成。
-    模型原生采样率写 wav；decode() 再用 ffmpeg 重采样到 SR。需 PIPER_MODEL 指向一个 .onnx 语音。"""
+    模型原生采样率写 wav；decode() 再用 ffmpeg 重采样到 SR。需 PIPER_MODEL 指向一个 .onnx 语音。
+    不套 PRONOUNCE 读音覆写（那是 kokoro/misaki 语法，piper 会把括号读出来）。"""
     global _piper
     if not PIPER_MODEL:
         raise SystemExit('TTS_ENGINE=piper 需要 PIPER_MODEL 指向一个 piper .onnx 语音'
@@ -250,7 +250,8 @@ _kokoro_onnx = None
 
 def synth_kokoro_onnx(text):
     """kokoro-onnx：onnxruntime 版 kokoro（Linux/ARM 友好，无 torch/spacy；比 `kokoro` 引擎好装、音色自然），
-    24kHz，无词边界 → 逐块合成。需 KOKORO_ONNX_MODEL / KOKORO_ONNX_VOICES 两个模型文件。"""
+    24kHz，无词边界 → 逐块合成。需 KOKORO_ONNX_MODEL / KOKORO_ONNX_VOICES 两个模型文件。
+    不套 PRONOUNCE 读音覆写（kokoro-onnx 用 espeak 音素化，不认 misaki 的 [词](/音标/) 语法）。"""
     global _kokoro_onnx
     if not (KOKORO_ONNX_MODEL and KOKORO_ONNX_VOICES):
         raise SystemExit('TTS_ENGINE=kokoro_onnx 需要 KOKORO_ONNX_MODEL 与 KOKORO_ONNX_VOICES'

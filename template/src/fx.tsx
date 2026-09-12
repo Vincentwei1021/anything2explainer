@@ -162,7 +162,7 @@ export const GradBall: React.FC<{cx: number; cy: number; r: number; stroke?: num
 
 // ---- 纵深：倾斜平面 ----
 /**
- * 倾斜平面（HNSW 分层、空间分层用）：以 (cx,cy) 为中心的 w×h 平面，skewX(skew°) scaleY(sy) 成"躺着"的平行四边形；
+ * 倾斜平面（层级 / 空间分层用）：以 (cx,cy) 为中心的 w×h 平面，skewX(skew°) scaleY(sy) 成"躺着"的平行四边形；
  * children 用平面内坐标（原点左上、尺寸 w×h）绝对定位，会跟着一起变形。多层叠放：层距 90px，靠后的层 opacity 0.6。
  */
 export const TiltPlane: React.FC<{cx: number; cy: number; w?: number; h?: number; skew?: number; sy?: number; stroke?: string; sw?: number; fill?: string; opacity?: number; children?: React.ReactNode}> = ({cx, cy, w = 420, h = 260, skew = -20, sy = 0.5, stroke = WHITE, sw = 2, fill = 'rgba(0,0,0,.85)', opacity = 1, children}) => (
@@ -220,7 +220,7 @@ export const setPiece = (T0: number, T1: number) => ({
   pills: T1 + SET_PIECE.pills,
 });
 
-// ---- 圆形光斑 / 暗角 / 主角组合（来自 G1 g1ui.tsx，升入共用层供各组复用）----
+// ---- 圆形光斑 / 暗角 / 主角组合（共用层图元，各组直接 import）----
 /** 圆形紫柔光斑（radial-gradient）：图形主角脚下/身后的大面积光，比 HeroGlow 的矩形 box-shadow 更适合圆形/人形主角（Gauge、PersonIcon、环）。N 传入时 30 帧呼吸 ±15%，k 为强度 0→1 */
 export const GlowBlob: React.FC<{cx: number; cy: number; r: number; N?: number; k?: number; alpha?: number}> = ({cx, cy, r, N, k = 1, alpha = 0.34}) => {
   const breathe = N === undefined ? 1 : 1 + 0.15 * Math.sin((2 * Math.PI * N) / 30);
