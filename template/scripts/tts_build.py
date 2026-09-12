@@ -10,7 +10,7 @@
   public/assets/<slug>/audio.wav（48k 立体声 16bit；slug 读 src/config.ts）
   script/timeline.json / timeline.md
   src/common/subs.ts（字幕表）、src/common/timeline.ts（TOTAL_FRAMES / CHAPTER_STARTS / SENTENCES）
-逐句（或逐字幕块）缓存于 audio/cache/，改一句只重合成一句。
+逐句（或逐字幕块）缓存于 audio/cache/，改一句只重合成一句；缓存键含引擎参数与本地模型文件的指纹（路径 + 大小 + mtime + 内容头），换模型自动失效。
 
 TTS 引擎（`TTS_ENGINE`，默认 `auto` = 按解说词语言选；**跑之前先问用户有没有偏好的 TTS**，见 SKILL.md 确认点 3）：
   edge     中文默认。edge-tts 云端合成，有词级边界 → 字幕节拍最准。VOICE=zh-CN-YunxiNeural RATE=+8%
@@ -54,6 +54,26 @@ KOKORO_ONNX_VOICES = os.environ.get('KOKORO_ONNX_VOICES', '')  # 例：voices-v1
 KOKORO_ONNX_VOICE = os.environ.get('KOKORO_ONNX_VOICE', 'am_michael')
 KOKORO_ONNX_LANG = os.environ.get('KOKORO_ONNX_LANG', 'en-us')
 CHUNK_PAD = float(os.environ.get('CHUNK_PAD', 0.06))  # 无词边界引擎：块间静音秒
+
+
+def _file_fp(path):
+    """模型文件指纹（进缓存键）：真实路径 + 大小 + mtime + 前 1MB 内容的 sha1 前 12 位。
+    换目录下的同名模型、原地替换模型文件都会让旧缓存失效；只按文件名区分会把不同声音的缓存混在一起。
+    路径为空返回 'none'；路径设了但文件不存在返回 'missing:<路径>'（合成时另有报错）。"""
+    if not path:
+        return 'none'
+    rp = os.path.realpath(path)
+    try:
+        st = os.stat(rp)
+        with open(rp, 'rb') as f:
+            head = f.read(1 << 20)
+    except OSError:
+        return f'missing:{rp}'
+    return hashlib.sha1(f'{rp}|{st.st_size}|{st.st_mtime_ns}|'.encode() + head).hexdigest()[:12]
+
+
+PIPER_FP = _file_fp(PIPER_MODEL)
+KOKORO_ONNX_FP = f'{_file_fp(KOKORO_ONNX_MODEL)}+{_file_fp(KOKORO_ONNX_VOICES)}'
 EDGE_TRIES = int(os.environ.get('EDGE_TRIES', 4))     # edge-tts 每句最多试几次（端点会间歇性返回空音频）
 GAP = int(os.environ.get('GAP', 10))          # 句间空白帧
 CHAPTER_GAP = int(os.environ.get('CHAPTER_GAP', 45))  # 章节前空白帧
@@ -90,7 +110,8 @@ def parse(path):
 
 
 def cache_path(text, ext):
-    sig = f'{ENGINE}|{VOICE}|{RATE}|{KOKORO_VOICE}|{KOKORO_ONNX_VOICE}|{KOKORO_ONNX_LANG}|{PIPER_VOICE_NAME}|{KOKORO_LANG}|{KOKORO_SPEED}|{text}'
+    # 本地模型引擎用文件指纹而不是文件名：不同目录下的同名 model.onnx、原地换掉的模型都要各自缓存
+    sig = f'{ENGINE}|{VOICE}|{RATE}|{KOKORO_VOICE}|{KOKORO_ONNX_VOICE}|{KOKORO_ONNX_LANG}|{KOKORO_ONNX_FP}|{PIPER_FP}|{KOKORO_LANG}|{KOKORO_SPEED}|{text}'
     return f'{CACHE}/{hashlib.sha1(sig.encode()).hexdigest()[:16]}{ext}'
 
 
