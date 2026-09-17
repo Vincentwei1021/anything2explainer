@@ -26,9 +26,11 @@ export const VIDEO = {
   /** 片尾署名卡（内容压黑 + 末句字幕结束后 ≈2 s，aboveBar；不需要就设为 null）。
    *  例：{kicker: 'BASED ON', title: '<论文 / 书 / 报告标题>', byline: '<作者 · 出处 · 年份>', note: 'all visuals drawn in code'} */
   credit: null as {kicker: string; title: string; byline: string; note: string} | null,
-  /** 章节英文副标（顺序对应 narration 的 CHAPTER 1..n；章节卡从第 2 章起显示；英文片可留空 '' 不渲染） */
+  /** 章节英文副标（顺序对应 narration 的 CHAPTER 1..n；章节卡从第 2 章起显示；英文片可留空 '' 不渲染）。
+   *  和章名一样是「说清讲什么」的标签，不是第二个创意标题；写这章的英文关键词或步骤序列（`Build · Run · Trace`）。 */
   chapterTech: ['Chapter One', 'Chapter Two'],
   /** 顶部 HUD 胶囊（当前小节名）：按句 id 区间；相邻条目之间自动无空档；跨章节卡自动淡出。下面两条对应模板 narration.txt 的两句，按本片重写。
+   *  text 是导航标签：写「这一小节讲什么」的名词短语（`知识库构建` / `混合检索`），不要评价句或比喻（`感觉还行` / `两把尺子` 观众猜不出内容）。
    *  tech 是胶囊下面那行英文副标（灰色 22px 小字，`TechSub`）：只放真正需要露出的英文术语，中文能说清就别加——它是注脚，不是第二个标题。 */
   hud: [
     {fromS: 'S01', toS: 'S01', text: '第一节名'},
