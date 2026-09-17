@@ -37,15 +37,15 @@ Both cuts share one storyboard and 44 shots; the English cut re-times every shot
 | Language | Chinese or English (`lang` in `src/config.ts`); typography, subtitle budgets and TTS switch with it |
 | Look | black canvas with one of two backdrops, star field + fog gradient or dot-field wave (`bg` in `src/config.ts`; the dot-field wave is ported from video-talkcraft); white line art + purple accents; ultra-bold headline type |
 | Persistent layers | 44px white-on-black-stroke subtitles, bottom chapter progress bar, top capsule HUD, optional pipeline rail |
-| Voiceover | Chinese: edge-tts `zh-CN-YunxiNeural` (Yunxi, male). English: kokoro-82m `am_liam` (Liam, male). Or bring your own TTS / finished audio |
+| Voiceover | Chinese: edge-tts `zh-CN-YunxiNeural` (Yunxi, male, unmodified rate ≈5.5 chars/s). English: kokoro-82m `am_liam` (Liam, male). Or bring your own TTS / finished audio |
 
 Length drives how much ground the film covers, and the size of the whole pipeline:
 
 | Length | Chinese chars | English words | Lines / shots | Build agents | Wall clock | Disk |
 |---|---|---|---|---|---|---|
-| 2–3 min | 700–950 | 280–420 | 24–32 | 4–6 | ≈1 h | ≈2 GB |
-| 3–5 min (reference tier) | 1200–1500 | 420–700 | 40–50 | 8 | ≈2 h | ≈2 GB |
-| 5–8 min | 1800–2400 | 700–1150 | 60–80 | 10–14 | ≈2–3 h | ≈3 GB |
+| 2–3 min | 650–880 | 280–420 | 24–32 | 4–6 | ≈1 h | ≈2 GB |
+| 3–5 min (reference tier) | 1100–1400 | 420–700 | 40–50 | 8 | ≈2 h | ≈2 GB |
+| 5–8 min | 1650–2200 | 700–1150 | 60–80 | 10–14 | ≈2–3 h | ≈3 GB |
 
 Chapter count follows the content, within limits set by length: under 3 minutes use a single chapter (no chapter cards), 3–5 minutes 3–4 chapters of at least 60 s each, 5–8 minutes 4–6. The progress bar splits evenly across however many chapters the narration declares. A blank line in the narration marks a paragraph, which is also one shot: sentences inside a paragraph are separated by 10 frames, paragraph ends by 30, so the pause lands where the picture changes and every shot holds 1–1.5 s after its last element lands. The finished video runs 5–8% longer than the raw speech by design.
 

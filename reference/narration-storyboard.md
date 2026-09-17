@@ -17,7 +17,7 @@
 - **每章一个论点句**：写在章首或章末，它就是这章的高光时刻候选（章论点 / 主角登场 / 收尾 payoff，见 `composition-and-light.md` §3）；分镜阶段的高光时刻清单直接从这些句子来。
 - **贯穿示例语境是画面层面的硬约束**（SKILL.md 硬性原则 3）：全片一个具体例子，各组共用同一套示例文本，文案里首次出现就写具体。比喻不是必需品：按 `narration-guidance.md` §5，只在能帮观众推理时用，用了就贯穿到底，不按章配。
 - **空行分段 = 分镜头**：2–4 句一段，一段讲完一个画面单元；段末画面停 1–1.5 s 再切，段内小句之间不停顿（一句一段 = 每句都停 = 整片显得拖，用户反馈）。段末句会带 ¶ 出现在 `timeline.md`，分镜按段划镜头。
-- 篇幅：**按用户定的时长取表里那一档**（如 3–5 分钟 → 40–50 句、1200–1500 字）。语速约 6 字/秒（英文见 §2.5），加段末/章前留白后成片密度约 4.3–4.8 字/秒（成片比纯语音长 5–8%，是停留预算）。每句 ≤35 字，长句用竖线切成 2–5 块。**短句是好文案**（节奏变化，`narration-guidance.md` §7），不必为画面避免它：分镜阶段短句并入相邻镜头当节拍，不单独成镜头。写完先估时长，超/欠 15% 就加删句子。
+- 篇幅：**按用户定的时长取表里那一档**（如 3–5 分钟 → 40–50 句、1100–1400 字）。语速约 5.5 字/秒（edge 云希原速 `RATE=+0%`，默认不加速；英文见 §2.5），加段末/章前留白后成片密度约 4.0–4.5 字/秒（成片比纯语音长 5–8%，是停留预算）。每句 ≤35 字，长句用竖线切成 2–5 块。**短句是好文案**（节奏变化，`narration-guidance.md` §7），不必为画面避免它：分镜阶段短句并入相邻镜头当节拍，不单独成镜头。写完先估时长，超/欠 15% 就加删句子。
 - 数字只用调研文档 §数字清单里有出处的；给出机构和年份（"某机构 2024 年的实验"）；易变数字加"发布时/截至 X 年"；每个数字换算成观众可感的尺度（`narration-guidance.md` §4），换不出来就删。
 - 中文片：外文术语第一次出现时中文在前外文在后；缩写要读得出来，读不出来的写全称。英文片见 §2.5。
 - 每句都要能画：写词时同步想"这句画什么"——它讲的是哪一种画面关系（§4 模式表左列）；画不出的句子改写或删。
@@ -27,7 +27,7 @@
 ## 2. 配音（`scripts/tts_build.py`）
 - **跑之前先过 SKILL.md 的确认点 2（文案定稿）与确认点 3（配音）**：问一句用户有没有偏好的 TTS，没有就用默认，不要摆一堆选项让他挑。
 - 引擎（`TTS_ENGINE`，默认 `auto` 按解说词语言选）：
-  - `edge` **中文默认**。edge-tts，`VOICE=zh-CN-YunxiNeural RATE=+8%`（男声，科普感）；可选 YunjianNeural（激昂）/ YunyangNeural（播报）/ XiaoxiaoNeural（女声）。有词级边界，字幕节拍最准。
+  - `edge` **中文默认**。edge-tts，`VOICE=zh-CN-YunxiNeural RATE=+0%`（男声；**默认原速不加速**，觉得慢再自己传 `RATE=+8%`，会从 ≈5.5 抬到 ≈6 字/秒）；可选 YunjianNeural（激昂）/ YunyangNeural（播报）/ XiaoxiaoNeural（女声）。有词级边界，字幕节拍最准。
   - `kokoro` **英文默认**。kokoro-82m 本地推理：`KOKORO_VOICE=am_liam KOKORO_LANG=a KOKORO_SPEED=1.0`——Liam，男声，与中文云希同定位。需 `pip install kokoro soundfile` + espeak-ng（macOS `brew install espeak-ng` / Linux `apt install espeak-ng`）。
   - kokoro 没有词边界 → 改为逐字幕块分别合成再拼接：块起始帧因此仍是精确的，但块界断句略生硬（`CHUNK_PAD` 调块间静音）。
   - `kokoro_onnx` / `piper`：Linux/ARM（树莓派）上 `kokoro` 装不动时的本地替代，都走逐块合成路径。`kokoro_onnx` 音色自然（`pip install kokoro-onnx` + `KOKORO_ONNX_MODEL` / `KOKORO_ONNX_VOICES`，`KOKORO_ONNX_VOICE` 默认 am_michael）；`piper` 最快但偏机械（`pip install piper-tts` + `PIPER_MODEL`）。两者都不认 `PRONOUNCE` 读音覆写。安装细节见 README「Linux / Raspberry Pi」。

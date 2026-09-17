@@ -15,7 +15,7 @@
 逐句（或逐字幕块）缓存于 audio/cache/，改一句只重合成一句；缓存键含引擎参数与本地模型文件的指纹（路径 + 大小 + mtime + 内容头），换模型自动失效。
 
 TTS 引擎（`TTS_ENGINE`，默认 `auto` = 按解说词语言选；**跑之前先问用户有没有偏好的 TTS**，见 SKILL.md 确认点 3）：
-  edge     中文默认。edge-tts 云端合成，有词级边界 → 字幕节拍最准。VOICE=zh-CN-YunxiNeural RATE=+8%
+  edge     中文默认。edge-tts 云端合成，有词级边界 → 字幕节拍最准。VOICE=zh-CN-YunxiNeural RATE=+0%（原速，默认不加速）
            词边界要显式请求（boundary='WordBoundary'，7.2.0 起的默认值不给），否则字幕起点会静默退化成插值。
   kokoro   英文默认。kokoro-82m 本地推理（`pip install kokoro soundfile` + espeak-ng：macOS `brew install espeak-ng` / Linux `apt install espeak-ng`）。
            KOKORO_VOICE=am_liam（Liam，男声，与中文云希同定位）KOKORO_LANG=a KOKORO_SPEED=1.0
@@ -42,7 +42,7 @@ FPS = 30
 SR = 48000
 ENGINE = os.environ.get('TTS_ENGINE', 'auto')
 VOICE = os.environ.get('VOICE', 'zh-CN-YunxiNeural')
-RATE = os.environ.get('RATE', '+8%')
+RATE = os.environ.get('RATE', '+0%')          # 原速：默认不给语音加速（用户裁定）。+8% 会把中文语速从 ≈5.5 抬到 ≈6 字/秒，听着赶
 KOKORO_VOICE = os.environ.get('KOKORO_VOICE', 'am_liam')
 KOKORO_LANG = os.environ.get('KOKORO_LANG', 'a')       # a=American English, b=British
 KOKORO_SPEED = float(os.environ.get('KOKORO_SPEED', 1.0))
