@@ -47,7 +47,7 @@ Length drives how much ground the film covers, and the size of the whole pipelin
 | 3–5 min (reference tier) | 1200–1500 | 420–700 | 40–50 | 8 | ≈2 h | ≈2 GB |
 | 5–8 min | 1800–2400 | 700–1150 | 60–80 | 10–14 | ≈2–3 h | ≈3 GB |
 
-Chapter count follows the content, within limits set by length: under 3 minutes use a single chapter (no chapter cards), 3–5 minutes 3–4 chapters of at least 60 s each, 5–8 minutes 4–6. The progress bar splits evenly across however many chapters the narration declares. Sentence gaps default to 20 frames so every shot can hold 1–1.5 s after its last element lands; the finished video runs 6–8% longer than the raw speech by design.
+Chapter count follows the content, within limits set by length: under 3 minutes use a single chapter (no chapter cards), 3–5 minutes 3–4 chapters of at least 60 s each, 5–8 minutes 4–6. The progress bar splits evenly across however many chapters the narration declares. A blank line in the narration marks a paragraph, which is also one shot: sentences inside a paragraph are separated by 10 frames, paragraph ends by 30, so the pause lands where the picture changes and every shot holds 1–1.5 s after its last element lands. The finished video runs 5–8% longer than the raw speech by design.
 
 ## Install
 
@@ -161,7 +161,7 @@ No. Remotion renders through headless Chromium on the CPU. The Chinese default v
 Yes. Put the finished audio at `public/assets/<slug>/audio.wav` and fill `src/common/timeline.ts` and `subs.ts` by hand (format documented at the top of `tts_build.py`). Everything downstream is unchanged.
 
 **Can I change the visual style?**
-There is one visual style, on purpose, with a single switch: the backdrop, `bg: 'stars' | 'dots'` in `src/config.ts`. To change anything else, edit `reference/style-guide.md` and `src/ui.tsx`; the shot code only uses those primitives.
+There is one visual style, on purpose, with a single switch: the backdrop, `bg` in `src/config.ts` (`'dots'` dot-field wave by default, `'stars'` star field with fog). To change anything else, edit `reference/style-guide.md` and `src/ui.tsx`; the shot code only uses those primitives.
 
 **Are the renders reproducible?**
 Yes. Every animation is a pure function of the frame number with seeded randomness, and text fitting is computed rather than measured in the DOM, so re-rendering produces identical frames.

@@ -26,9 +26,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def cfg_bg():
     try:
         m = re.search(r"bg:\s*'(stars|dots)'", open(f'{ROOT}/src/config.ts', encoding='utf-8').read())
-        return m.group(1) if m else 'stars'
+        return m.group(1) if m else 'dots'
     except OSError:
-        return 'stars'
+        return 'dots'
 BG = cfg_bg() if a.bg == 'auto' else a.bg
 
 def dot_mask(W=1280, H=720, r=5):

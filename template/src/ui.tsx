@@ -104,6 +104,14 @@ export const TechText: React.FC<{cx: number; cy: number; text: string; fontSize?
     {text}
   </CText>
 );
+/**
+ * 中英配对的副标：主体（中文胶囊 / 章名大字）下面那行另一种语言。一律**灰色小字**，不与主体同色同大小——
+ * 紫色只给"当前重点"，常驻/重复出现的副标不是重点；中英两行等大又同色会读成两个主体（用户反馈：中英样式割裂）。
+ */
+export const TechSub: React.FC<{cx: number; cy: number; text: string; size?: number; opacity?: number; color?: string}> = ({cx, cy, text, size = 22, opacity = 1, color = GREY}) => (
+  <TechText cx={cx} cy={cy} text={text} fontSize={size} color={color} glow={false} letterSpacing={1.5} opacity={opacity} />
+);
+
 /** 等宽数字/代码文字 */
 export const MonoText: React.FC<{x: number; y: number; size?: number; color?: string; opacity?: number; children: React.ReactNode; style?: React.CSSProperties}> = ({x, y, size = 22, color = WHITE, opacity = 1, children, style}) => (
   <div style={{position: 'absolute', left: x, top: y, fontFamily: FONT_MONO, fontSize: size, lineHeight: 1.3, color, opacity, whiteSpace: 'pre', ...style}}>{children}</div>
@@ -250,12 +258,12 @@ export const TopCapsule: React.FC<{N: number; f0: number; text: string; w?: numb
   glitch ? (
   <GlitchIn N={N} f0={f0} style={{opacity}}>
     <Pill x={640 - w / 2} y={28} w={w} h={51} fill={fill} sw={2} text={text} fontSize={textSize} weight={700} letterSpacing={1} textDy={TEXT_DY} style={{filter: PILL_SHADOW}} />
-    {tech ? <TechText cx={640} cy={94} text={tech} fontSize={30} scaleX={0.8} /> : null}
+    {tech ? <TechSub cx={640} cy={92} text={tech} /> : null}
   </GlitchIn>
   ) : (
   <SoftIn N={N} f0={f0} style={{opacity}} dy={6}>
     <Pill x={640 - w / 2} y={28} w={w} h={51} fill={fill} sw={2} text={text} fontSize={textSize} weight={700} letterSpacing={1} textDy={TEXT_DY} style={{filter: PILL_SHADOW}} />
-    {tech ? <TechText cx={640} cy={94} text={tech} fontSize={30} scaleX={0.8} /> : null}
+    {tech ? <TechSub cx={640} cy={92} text={tech} /> : null}
   </SoftIn>
   )
 );

@@ -1,7 +1,7 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {GlitchIn, kf, emphasisPulse, easeInOutPow, SENTENCES, TOTAL_FRAMES, CHAPTER_STARTS, FONT_HEAVY, FONT_WIDE, FONT_ORB, clamp01, SQUEEZE, fitSize, EM_WIDE} from '../common';
-import {CText, TechText, Pill, TopCapsule, ArrowH, PURPLE, PURPLE_TECH, GREY, GREY_MID, WHITE, GLOW_PURPLE_S, PILL_SHADOW, fadeIn, slideUp} from '../ui';
+import {CText, TechText, TechSub, Pill, TopCapsule, ArrowH, PURPLE, PURPLE_TECH, GREY, GREY_MID, WHITE, GLOW_PURPLE_S, PILL_SHADOW, fadeIn, slideUp} from '../ui';
 import {VIDEO} from '../config';
 const clampFrames = (n: number, len: number) => clamp01(n / len);
 
@@ -79,7 +79,7 @@ export const ChapterCard: React.FC<{card: (typeof CHAPTER_CARDS)[number]}> = ({c
       <div style={{position: 'absolute', left: 640 - w / 2, top: 428, width: w, height: 3, background: WHITE, opacity: 0.85}} />
       {card.tech ? (
         <div style={{position: 'absolute', opacity: fadeIn(n - 10, 10)}}>
-          <TechText cx={640} cy={470} text={card.tech} fontSize={32} scaleX={0.82} />
+          <TechSub cx={640} cy={470} text={card.tech} size={26} />
         </div>
       ) : null}
     </div>
@@ -125,7 +125,7 @@ export const Hud: React.FC = () => {
         {oldOp > 0.01 ? <CText cx={640} cy={53.5} size={33} weight={700} letterSpacing={1} opacity={oldOp}>{prev.text}</CText> : null}
         <div style={{position: 'absolute', inset: 0, opacity: newOp, transform: `translateY(${((1 - newOp) * 4).toFixed(2)}px)`}}>
           <CText cx={640} cy={53.5} size={33} weight={700} letterSpacing={1}>{e.text}</CText>
-          {e.tech ? <TechText cx={640} cy={94} text={e.tech} fontSize={30} scaleX={0.8} /> : null}
+          {e.tech ? <TechSub cx={640} cy={92} text={e.tech} /> : null}
         </div>
       </div>
     );
