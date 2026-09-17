@@ -82,7 +82,7 @@ Noto Sans SC 自带完整拉丁字形（实测 wght 100–900 全覆盖），所
 光效 / 高光时刻 / 纵深 / 运镜图元在 `src/fx.tsx`（`import {…} from '../../fx'`）：
 | 组件 | 用途 |
 |---|---|
-| `LightBar` / `LightSweep` | 紫光条横扫（高光时刻开场三轮） |
+| `LightBar` / `LightSweep` | 紫光条横扫（登场型高光时刻开场三轮；**全片 ≤2 处**，只给扫光白名单里的镜头） |
 | `StageLine` | 中央舞台光线：展宽 → 呼吸 → 节拍帧白闪消失 |
 | `GhostText` / `ghostOpacity` | 主角大字的白描边轮廓 10% 预示 |
 | `HaloRing` | 主体脚下紫色光环，可分 back / front 夹住主体 |

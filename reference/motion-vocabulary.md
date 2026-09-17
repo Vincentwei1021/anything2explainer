@@ -28,9 +28,9 @@
 | 名称 | 公式/组件 | 帧数 | 用途 |
 |---|---|---|---|
 | 主角常亮 | `<HeroGlow x y w h N>` 双层紫柔光 + 30 帧呼吸 ±15%；或 `LLMIcon glow` | 常驻 | **每镜头主角必带**；配角不带 |
-| 紫光条横扫 | `<LightSweep N rounds={[T0+4,T0+22,T0+40]}>` 每轮 3 条、2 帧错峰、16 帧、α .6/.55/.55 白芯 | 3×16 | 高光时刻开场的「舞台追光」 |
-| 舞台光线 | `<StageLine N f0 flashAt>` 14 帧展宽到 720 → 呼吸 → 节拍帧白闪 3 帧消失 | 14+ | 主角落点的预示线 |
-| 幽灵轮廓 | `<GhostText opacity={ghostOpacity(N,f0,until)}>` 白描边 10% 隐现 | 12 淡入 | 主角大字出现前约 40 帧 |
+| 紫光条横扫 | `<LightSweep N rounds={[T0+4,T0+22,T0+40]}>` 每轮 3 条、2 帧错峰、16 帧、α .6/.55/.55 白芯 | 3×16 | **登场型高光时刻专用，全片 ≤2 处**（扫光白名单）：核心概念首次登场 + 可选结尾回扣；大数字 / 论点 / 象征物型不用 |
+| 舞台光线 | `<StageLine N f0 flashAt>` 14 帧展宽到 720 → 呼吸 → 节拍帧白闪 3 帧消失 | 14+ | 主角落点的预示线；只随扫光出现（登场型专用） |
+| 幽灵轮廓 | `<GhostText opacity={ghostOpacity(N,f0,until)}>` 白描边 10% 隐现 | 12 淡入 | 主角大字出现前约 40 帧；只随扫光出现（登场型专用） |
 | 光环 | `<HaloRing p fillOp phase half>` 白描边 draw-on 20 帧 + 紫渐变 12 帧 + 3 圈虚线波纹 2 帧一相位 | 20 | 象征物脚下（back / 主体 / front 三层） |
 | 紫硬投影 | 大字 textShadow `6px 6px 0 PURPLE, 0 0 28px rgba(102,45,248,.45)`（`BigNumber` 默认） | 常驻 | Audiowide / Orbitron 大字、片名 |
 | 紫描边 | Noto 900 大字 `WebkitTextStroke 2.5px PURPLE` + `paintOrder: stroke fill` + 紫柔光 | 常驻 | 结论大字 |
@@ -86,3 +86,4 @@
 - 每镜头 ≤1 处 GlitchIn，只给"这一镜头在讲的那个词"；分镜表里 glitch 一词只出现在那一格，其余写"淡入"。
 - HUD 换词、流程轨、编号、角标、小标签、数字、图标：一律 SoftIn/淡入/缩放。
 - 终检用 12 帧模板扫描全片，命中数必须等于白名单条数。
+- **扫光白名单**同理：三轮 `LightSweep`（连带 `StageLine` / `GhostText`）只出现在分镜「全局约束 §扫光白名单」列出的 ≤2 个镜头；`selfcheck.py` 按文件计数，终检按帧核对。
