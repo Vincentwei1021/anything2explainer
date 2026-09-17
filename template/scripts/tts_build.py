@@ -2,7 +2,7 @@
 """配音 + 时间轴生成。项目根 = 本脚本所在 scripts/ 的上级目录。
 输入 narration.txt：
   # CHAPTER <n> <标题>      章节标记（章节前自动加 chapter_gap 帧空白）
-  ## gap <帧数>             在下一句前额外插入空白帧
+  ## gap <帧数>             在下一句前额外插入空白帧（末块 <45 帧的句子后面加 15–30，给末拍元素落位停留；本脚本跑完会列出这些句）
   一句话|按竖线分成字幕短句            → 竖线只切字幕，不影响朗读
                                        每块预算：中文 ≤16 字 / 英文 ≤48 字符（超了会打 ⚠ 并自动缩字号）
                                        块首尾空格会去掉；英文片把块用空格拼回整句给 TTS（"a|b" 与 "a | b" 等价），中文直接拼接
@@ -75,10 +75,11 @@ def _file_fp(path):
 PIPER_FP = _file_fp(PIPER_MODEL)
 KOKORO_ONNX_FP = f'{_file_fp(KOKORO_ONNX_MODEL)}+{_file_fp(KOKORO_ONNX_VOICES)}'
 EDGE_TRIES = int(os.environ.get('EDGE_TRIES', 4))     # edge-tts 每句最多试几次（端点会间歇性返回空音频）
-GAP = int(os.environ.get('GAP', 10))          # 句间空白帧
+GAP = int(os.environ.get('GAP', 20))          # 句间空白帧：停留预算（末拍元素落位后要停 1–1.5 s 再切）；第一至五片用 10–16 帧，实测末拍元素刚落位就被切走
 CHAPTER_GAP = int(os.environ.get('CHAPTER_GAP', 45))  # 章节前空白帧
 LEAD = int(os.environ.get('LEAD', 40))        # 片头静音帧
 TAIL = int(os.environ.get('TAIL', 90))        # 片尾静音帧
+SHORT_TAIL = 45                               # 末块短于此帧数的句子要补停留（22 帧入场 + 8 帧离场后停不满 30 帧）
 CACHE = f'{ROOT}/audio/cache'
 os.makedirs(CACHE, exist_ok=True)
 if ENGINE not in ('auto', 'edge', 'kokoro', 'piper', 'kokoro_onnx'):
@@ -445,16 +446,24 @@ async def main(narr):
     json.dump(tl, open(f'{ROOT}/script/timeline.json', 'w'), ensure_ascii=False, indent=1)
     with open(f'{ROOT}/script/timeline.md', 'w') as f:
         f.write(f"# 时间轴（{ENGINE} · {tl['voice']} {tl['rate']}，共 {total} 帧 = {total/FPS:.1f}s，{cnt} {unit}，语速 {cnt/max(1e-6,speech_sec):.2f} {unit}/s）\n\n")
-        f.write('| 句 | 章 | 帧 from–to | 时长 | 文本（| 为字幕切分） |\n|---|---|---|---|---|\n')
+        f.write('| 句 | 章 | 帧 from–to | 时长 | 末块 | 文本（| 为字幕切分） |\n|---|---|---|---|---|---|\n')
         ci = {c['from']: c for c in chapters}
         for s in sentences:
             for c in chapters:
                 if s['from'] >= c['from'] and (not any(s['from'] >= c2['from'] > c['from'] for c2 in chapters)):
                     pass
-            f.write(f"| {s['id']} | {s['chapter']} | {s['from']}–{s['to']} | {(s['to']-s['from']+1)/FPS:.1f}s | {'｜'.join(sb['text'] for sb in s['subs'])} |\n")
+            last = s['to'] - s['subs'][-1]['from'] + 1
+            f.write(f"| {s['id']} | {s['chapter']} | {s['from']}–{s['to']} | {(s['to']-s['from']+1)/FPS:.1f}s | {last}{'⚠' if last < SHORT_TAIL else ''} | {'｜'.join(sb['text'] for sb in s['subs'])} |\n")
         f.write('\n## 章节起始帧\n')
         for c in chapters:
             f.write(f"- 第{c['n']}章 {c['title']}：f{c['from']}\n")
+        f.write(f'\n末块 = 末尾字幕块的帧数（⚠ <{SHORT_TAIL}：末拍元素 22 帧入场 + 8 帧离场后停不满 30 帧）。补法：句后加 `## gap 15–30` 重跑（缓存命中），或分镜时把末拍元素前挂到上一块，或把短句并入相邻镜头。\n')
+    # 末块体检（composition-and-light.md §7 落位停留）
+    short = [(s['id'], s['to'] - s['subs'][-1]['from'] + 1) for s in sentences if s['to'] - s['subs'][-1]['from'] + 1 < SHORT_TAIL]
+    if short:
+        print(f'⚠ {len(short)}/{len(sentences)} 句末块 <{SHORT_TAIL} 帧（末拍元素落位后停不满 30 帧）：' + ' '.join(f'{i}({n})' for i, n in short))
+        print('    → 在这些句后加 `## gap 15–30` 重跑（不改词、缓存命中），或分镜时把末拍元素前挂 / 把短句并入相邻镜头')
+    print(f'成片 {total/FPS:.1f}s，其中纯语音 {speech_sec:.1f}s（句间 {GAP} 帧 + 章前 {CHAPTER_GAP} 帧是停留预算，成片比语音长 {(total/FPS/max(speech_sec,1e-6)-1)*100:.0f}% 属正常）')
     # 文本一律走 json.dumps：JSON 字符串就是合法的 TS 字面量，且会转义 " \ 与控制字符
     # （手工拼引号会被解说词里的 \ ' ` ${} 破坏语法，甚至把文本写成代码）
     def lit(s):

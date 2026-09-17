@@ -47,7 +47,7 @@ Length drives how much ground the film covers, and the size of the whole pipelin
 | 3–5 min (reference tier) | 1200–1500 | 420–700 | 40–50 | 8 | ≈2 h | ≈2 GB |
 | 5–8 min | 1800–2400 | 700–1150 | 60–80 | 10–14 | ≈2–3 h | ≈3 GB |
 
-Chapter count is not tied to length. One chapter that goes deep or several short ones both work; the progress bar splits evenly across however many chapters the narration declares.
+Chapter count follows the content, within limits set by length: under 3 minutes use a single chapter (no chapter cards), 3–5 minutes 3–4 chapters of at least 60 s each, 5–8 minutes 4–6. The progress bar splits evenly across however many chapters the narration declares. Sentence gaps default to 20 frames so every shot can hold 1–1.5 s after its last element lands; the finished video runs 6–8% longer than the raw speech by design.
 
 ## Install
 
