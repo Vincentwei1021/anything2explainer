@@ -127,7 +127,7 @@ export const HeroGlow: React.FC<{x: number; y: number; w: number; h: number; r?:
   const a = clamp01(k) * breathe;
   if (a <= 0.01) return null;
   const glow = color ? `0 0 ${(12 * a).toFixed(0)}px ${(3 * a).toFixed(0)}px ${color}59, 0 0 ${(42 * a).toFixed(0)}px ${(14 * a).toFixed(0)}px ${color}73` : GLOW_PURPLE;
-  return <div style={{...abs(x, y, w, h), borderRadius: r, boxShadow: glow, opacity: color ? 1 : a}} />;
+  return <div style={{...abs(x, y, w, h), borderRadius: r, boxShadow: glow, opacity: color ? clamp01(k) : a}} />;
 };
 
 // ---- 大数字 ----

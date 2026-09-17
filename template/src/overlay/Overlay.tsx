@@ -117,8 +117,8 @@ export const Hud: React.FC = () => {
   if (sameChapter && prev && n < 10) {
     const t = easeInOutPow(2.5)(clampFrames(n, 10));
     const wNow = hudW(prev) + (w - hudW(prev)) * t;
-    const oldOp = 1 - clampFrames(n, 6);
-    const newOp = 1 - Math.pow(1 - clampFrames(n + 1, 9), 2.5);
+    const oldOp = 1 - clampFrames(n, 4); // 第五片 QC：旧词 4 帧淡完再进新词（新词 n≥4 起），零叠影
+    const newOp = 1 - Math.pow(1 - clampFrames(n - 3, 7), 2.5);
     return (
       <div style={{position: 'absolute', inset: 0, opacity: fadeTail}}>
         <Pill x={640 - wNow / 2} y={28} w={wNow} h={51} fill={PURPLE} sw={2} style={{filter: PILL_SHADOW}} />
