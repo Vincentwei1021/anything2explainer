@@ -75,6 +75,15 @@ Names, dates, real numbers with sources, real product names. Mark approximations
 fact into a slogan. An explainer that is exciting but slightly wrong is worth less than one that is calm and right;
 the goal is to be both.
 
+## 13. Hand off at the seams
+A section boundary is where a listener is most easily lost: the previous idea is finished, the next one has not started,
+and a title card is doing nothing but announcing. Make the join carry weight. The last stretch of a section should leave a
+question, a cost or a gap that the next section exists to close; the first sentence of the next section names what was just
+achieved and then opens that question - "the manual is built; now the real exam starts". Nobody should have to ask why this
+section follows the last, and no section should begin from a standing start ("now let's look at X").
+This is not the announcing transition §10 tells you to cut. "Next we'll cover chunking" only reports the running order;
+"the manual is only as good as the way it was built" creates the need for the next section. Announce nothing, motivate everything.
+
 ## Quick pre-flight for a finished draft
 - Opening sentence: is anyone in a situation yet? (§1)
 - Could the sections be reordered without loss? (§2) If yes, find the spine.
@@ -84,4 +93,5 @@ the goal is to be both.
 - Any sentence that announces, summarizes, or describes the picture? Cut. (§6, §10, §11)
 - Read aloud; mark three-in-a-row same-shape sentences. (§7)
 - Every technical term: plain idea first, name second, and used again later. (§8)
+- Every section boundary: does the previous section leave a question and the next one open by answering it, instead of starting cold? (§13)
 - Ending: does it reframe the opening? (§9)
