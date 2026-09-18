@@ -7,7 +7,7 @@
 
 **English** | [简体中文](README_ZH.md)
 
-**Topic in, narrated explainer video out.** anything2explainer is a [Claude Code](https://claude.com/claude-code) / [Codex](https://openai.com/codex) skill that turns any topic into a black-canvas motion-graphics explainer video with TTS voiceover, subtitles and a chapter progress bar, in Chinese or English. Every frame is drawn in code with [Remotion](https://remotion.dev) (React + TypeScript). No stock footage, no generative video model, no frames lifted from anyone else's work.
+**Topic in, narrated explainer video out.** anything2explainer is a [Claude Code](https://claude.com/claude-code) / [Codex](https://openai.com/codex) skill that turns any topic into a black-canvas motion-graphics explainer video with TTS voiceover, subtitles and a chapter progress bar, in Chinese, English or Russian. Every frame is drawn in code with [Remotion](https://remotion.dev) (React + TypeScript). No stock footage, no generative video model, no frames lifted from anyone else's work.
 
 It is not a CLI. What ships here is the whole method an AI coding agent needs to finish the film: a compilable Remotion template, a primitives and lighting library, tooling for voiceover / storyboard / rendering / quantitative QC, written style and motion specs, a multi-agent division-of-labour protocol, and one complete reference film as the quality bar.
 
@@ -34,18 +34,18 @@ Both cuts share one storyboard and 44 shots; the English cut re-times every shot
 |---|---|
 | Frame / rate | 1280×720 @ 30fps, H.264 |
 | Length | your call (see table below); 2–8 minutes all work |
-| Language | Chinese or English (`lang` in `src/config.ts`); typography, subtitle budgets and TTS switch with it |
+| Language | Chinese, English or Russian (`lang: 'zh' | 'en' | 'ru'` in `src/config.ts`); typography, subtitle budgets and TTS switch with it |
 | Look | black canvas with one of two backdrops, star field + fog gradient or dot-field wave (`bg` in `src/config.ts`; the dot-field wave is ported from video-talkcraft); white line art + purple accents; ultra-bold headline type |
 | Persistent layers | 44px white-on-black-stroke subtitles, bottom chapter progress bar, top capsule HUD, optional pipeline rail |
-| Voiceover | Chinese: edge-tts `zh-CN-YunxiNeural` (Yunxi, male). English: kokoro-82m `am_liam` (Liam, male). Or bring your own TTS / finished audio |
+| Voiceover | Chinese: edge-tts `zh-CN-YunxiNeural`. English: kokoro-82m `am_liam`. Russian: edge-tts `ru-RU-DmitryNeural`. Or bring your own TTS / finished audio |
 
 Length drives how much ground the film covers, and the size of the whole pipeline:
 
-| Length | Chinese chars | English words | Lines / shots | Build agents | Wall clock | Disk |
-|---|---|---|---|---|---|---|
-| 2–3 min | 700–950 | 280–420 | 24–32 | 4–6 | ≈1 h | ≈2 GB |
-| 3–5 min (reference tier) | 1200–1500 | 420–700 | 40–50 | 8 | ≈2 h | ≈2 GB |
-| 5–8 min | 1800–2400 | 700–1150 | 60–80 | 10–14 | ≈2–3 h | ≈3 GB |
+| Length | Chinese chars | English words | Russian words | Lines / shots | Build agents | Wall clock | Disk |
+|---|---|---|---|---|---|---|---|
+| 2–3 min | 700–950 | 280–420 | 260–390 | 24–32 | 4–6 | ≈1 h | ≈2 GB |
+| 3–5 min (reference tier) | 1200–1500 | 420–700 | 390–650 | 40–50 | 8 | ≈2 h | ≈2 GB |
+| 5–8 min | 1800–2400 | 700–1150 | 650–1040 | 60–80 | 10–14 | ≈2–3 h | ≈3 GB |
 
 Chapter count is not tied to length. One chapter that goes deep or several short ones both work; the progress bar splits evenly across however many chapters the narration declares.
 
@@ -137,7 +137,7 @@ The run stops and waits for you at exactly four points instead of ploughing thro
 
 1. **Length and language**: before the script is written. Length decides the line count, shot count and how many agents run in parallel, i.e. how much the film can actually cover; language flips `lang` in `src/config.ts`, which drives typography, subtitle budgets and the default voice.
 2. **Narration sign-off**: before voiceover. Once locked, frame numbers are hard-coded into every shot; changing one word re-times the whole film. This is the cheapest place to intervene.
-3. **Voiceover**: before TTS runs you get asked whether you have a preferred engine. If not, defaults apply (edge-tts Yunxi for Chinese, kokoro-82m Liam for English). You can also hand over finished audio and fill the per-line timeline yourself.
+3. **Voiceover**: before TTS runs you get asked whether you have a preferred engine. If not, defaults apply (edge-tts Yunxi for Chinese, kokoro-82m Liam for English, edge-tts Dmitry for Russian). You can also hand over finished audio and fill the per-line timeline yourself.
 4. **First 30 seconds**: only the first build group is done, then 30 seconds get rendered for you to judge the look. Fixing the style here costs one group; after the full render it costs every group.
 
 ## How it compares
@@ -155,7 +155,7 @@ The run stops and waits for you at exactly four points instead of ploughing thro
 It is written for Claude Code and Codex, and those two are what it has been run with. The skill itself is plain Markdown plus a Remotion project, so any agent that reads `SKILL.md`-style skill folders and can run shell commands should be able to follow it.
 
 **Does it need a GPU?**
-No. Remotion renders through headless Chromium on the CPU. The Chinese default voice (edge-tts) is a cloud call to a Microsoft endpoint; the English default (kokoro-82m) is an 82M-parameter model that runs locally on CPU.
+No. Remotion renders through headless Chromium on the CPU. The Chinese and Russian default voices use edge-tts through a Microsoft endpoint; the English default (kokoro-82m) is an 82M-parameter model that runs locally on CPU.
 
 **Can I use my own voice or a different TTS?**
 Yes. Put the finished audio at `public/assets/<slug>/audio.wav` and fill `src/common/timeline.ts` and `subs.ts` by hand (format documented at the top of `tts_build.py`). Everything downstream is unchanged.
@@ -173,7 +173,7 @@ The toolkit is licensed under PolyForm Noncommercial: free for noncommercial use
 Not currently. The template and every safe-area rule assume 1280×720 landscape.
 
 **Which languages?**
-Chinese and English. Each has its own pacing model, subtitle budget and default voice. Both cuts are embedded at the top of this page; the written paper trail in `examples/rag/` is from the Chinese cut.
+Chinese, English and Russian. Russian uses `lang: 'ru'`, Edge TTS `ru-RU-DmitryNeural`, bundled-font Cyrillic width metrics and a 40-character subtitle budget. Chinese and English reference cuts are embedded above; the Russian path includes focused TTS and text-fitting tests.
 
 ## Repo layout
 
@@ -216,7 +216,7 @@ Remotion itself has its own license terms for companies — see [remotion.dev/li
 
 ## Known limits
 
-- Chinese and English are both supported (`lang: 'zh' | 'en'`), each with its own pacing, subtitle budget (16 chars / 48 characters per block) and default voice. Both cuts are embedded above; the paper trail in `examples/rag/` is from the Chinese cut. One visual style with two backdrops (`bg: 'stars' | 'dots'`); changing anything else means editing `reference/style-guide.md` + `src/ui.tsx`.
+- Chinese, English and Russian are supported (`lang: 'zh' | 'en' | 'ru'`), with subtitle budgets of 16 Chinese characters / 48 English characters / 40 Russian characters per block and language-specific default voices. Russian uses cloud Edge TTS by default, so sensitive narration needs a local engine or supplied audio. One visual style with two backdrops (`bg: 'stars' | 'dots'`); changing anything else means editing `reference/style-guide.md` + `src/ui.tsx`.
 - Not for: replicating an existing video, talking-head presenter footage, or films that are mostly live action.
 - Once the narration is voiced, the words are frozen — shot code hard-codes frame numbers, so a rewrite re-times everything.
 - Parallel builds are demanding: several agents bundle Remotion at once, so keep ≥5 GB free; tmux panes are capped, so past ~12 you have to dispatch in waves.

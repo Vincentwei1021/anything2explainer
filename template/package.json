@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test:russian": "node tests/run_russian_textfit_test.cjs",
     "studio": "remotion studio src/index.ts"
   },
   "dependencies": {

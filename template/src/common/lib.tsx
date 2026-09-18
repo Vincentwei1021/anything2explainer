@@ -57,12 +57,12 @@ export const FONT_SERIF = `'Times New Roman', Times, serif`; // 公式
 export const FONT_EN = `'Helvetica Neue', Helvetica, Arial, sans-serif`;
 
 // ---- 语言开关（src/config.ts 的 VIDEO.lang）----
-/** 'zh' 中文片（默认）｜'en' 英文片。影响：字体压窄系数、基线补偿、文案与字幕预算（见 reference/narration-storyboard.md §5）。 */
+/** 'zh' 中文片（默认）｜'en' 英文片｜'ru' 俄文片。影响字体压窄、基线补偿与字幕预算。 */
 export const LANG = VIDEO.lang ?? 'zh';
-/** 中文标题惯用 scaleX .8–.85 压窄；拉丁字母压窄会变形，英文片一律 1。 */
-export const SQUEEZE = LANG === 'en' ? 1 : 0.85;
-/** CJK 行盒 ascent 让墨迹比 top 低 3–7px，居中要预扣；拉丁不需要。 */
-export const TEXT_DY = LANG === 'en' ? 0 : -2;
+/** 中文标题惯用 scaleX .8–.85 压窄；拉丁和西里尔字母不压窄。 */
+export const SQUEEZE = LANG === 'zh' ? 0.85 : 1;
+/** CJK 行盒 ascent 需要预扣；拉丁和西里尔文字不需要。 */
+export const TEXT_DY = LANG === 'zh' ? -2 : 0;
 
 /** 在 Main 顶层挂一次；用 delayRender 等字体就绪。 */
 export const Fonts: React.FC = () => {

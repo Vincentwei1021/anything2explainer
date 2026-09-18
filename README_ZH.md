@@ -7,7 +7,7 @@
 
 [English](README.md) | **简体中文**
 
-**给一个主题，产出一条带配音的科普讲解视频。** anything2explainer 是一个 [Claude Code](https://claude.com/claude-code) / [Codex](https://openai.com/codex) skill：输入任意主题，输出一条黑底 MG（motion graphics）风格的讲解视频，带 TTS 配音、字幕和章节进度条，中文或英文都行。画面全部由 [Remotion](https://remotion.dev)（React + TypeScript）代码绘制，不用素材库，不用视频生成模型，也不使用任何现有视频的帧。
+**给一个主题，产出一条带配音的科普讲解视频。** anything2explainer 是一个 [Claude Code](https://claude.com/claude-code) / [Codex](https://openai.com/codex) skill：输入任意主题，输出一条黑底 MG（motion graphics）风格的讲解视频，带 TTS 配音、字幕和章节进度条，支持中文、英文和俄文。画面全部由 [Remotion](https://remotion.dev)（React + TypeScript）代码绘制，不用素材库，不用视频生成模型，也不使用任何现有视频的帧。
 
 它不是一个 CLI。仓库里装的是让 AI 编程 agent 把片子做出来的整套方法：可编译的 Remotion 模板工程、图元与光效库、配音/分镜/渲染/量化质检工具、风格与动效规范、多 agent 分工协议，以及一条完整样片作为质量标尺。
 
@@ -34,18 +34,18 @@ https://github.com/user-attachments/assets/e2771c68-a28c-4459-ac5a-a5b685181eeb
 |---|---|
 | 画幅 / 帧率 | 1280×720 @ 30fps，H.264 |
 | 时长 | 由你定（见下表），2–8 分钟都能做 |
-| 语言 | 中文或英文（`src/config.ts` 的 `lang`）；排版、字幕长度预算、配音默认值随它切换 |
+| 语言 | 中文、英文或俄文（`src/config.ts` 的 `lang: 'zh' | 'en' | 'ru'`）；排版、字幕长度预算、配音默认值随它切换 |
 | 视觉 | 黑底，幕底二选一：星点 + 雾底渐变，或点阵波（`src/config.ts` 的 `bg`；点阵波移植自 video-talkcraft 的 dot-field-wave）；白线条图形 + 紫色重点；超粗黑体大字 |
 | 常驻层 | 44px 白字黑边字幕、底部章节进度条、顶部胶囊 HUD、可选流程轨 |
-| 配音 | 中文 edge-tts `zh-CN-YunxiNeural`（云希，男声）/ 英文 kokoro-82m `am_liam`（Liam，男声）；也可用你自己的 TTS 或成品配音 |
+| 配音 | 中文 edge-tts `zh-CN-YunxiNeural` / 英文 kokoro-82m `am_liam` / 俄文 edge-tts `ru-RU-DmitryNeural`；也可用自己的 TTS 或成品配音 |
 
 时长决定内容丰富程度与全流程规模：
 
-| 时长 | 中文字数 | 英文词数 | 句 / 镜头数 | 构建 agent | 产出耗时 | 磁盘 |
-|---|---|---|---|---|---|---|
-| 2–3 分钟 | 700–950 | 280–420 | 24–32 | 4–6 | ≈1 小时 | ≈2GB |
-| 3–5 分钟（样片档） | 1200–1500 | 420–700 | 40–50 | 8 | ≈2 小时 | ≈2GB |
-| 5–8 分钟 | 1800–2400 | 700–1150 | 60–80 | 10–14 | ≈2–3 小时 | ≈3GB |
+| 时长 | 中文字数 | 英文词数 | 俄文词数 | 句 / 镜头数 | 构建 agent | 产出耗时 | 磁盘 |
+|---|---|---|---|---|---|---|---|
+| 2–3 分钟 | 700–950 | 280–420 | 260–390 | 24–32 | 4–6 | ≈1 小时 | ≈2GB |
+| 3–5 分钟（样片档） | 1200–1500 | 420–700 | 390–650 | 40–50 | 8 | ≈2 小时 | ≈2GB |
+| 5–8 分钟 | 1800–2400 | 700–1150 | 650–1040 | 60–80 | 10–14 | ≈2–3 小时 | ≈3GB |
 
 章数不由时长决定：一章讲透或多章概览都可以，进度条按解说词声明的章数等宽分段。
 
@@ -137,7 +137,7 @@ cd ~/work/my-video
 
 1. **时长与语言**：写文案之前。时长决定句数、镜头数和并行 agent 数，也就决定内容能铺多丰富；语言决定 `src/config.ts` 的 `lang`，进而影响排版、字幕预算和默认音色。
 2. **解说词定稿**：配音之前。定稿后帧号会被每个镜头硬编码，改一个字全片重对位，这是最便宜的干预点。
-3. **配音**：跑 TTS 之前问一句你有没有偏好的 TTS；没有就用默认（中文 edge-tts 云希、英文 kokoro-82m Liam）。也可以直接给成品配音，自己按逐句时间轴填 `timeline.ts`。
+3. **配音**：跑 TTS 之前问一句你有没有偏好的 TTS；没有就用默认（中文 edge-tts 云希、英文 kokoro-82m Liam、俄文 edge-tts Дмитрий）。也可以直接给成品配音，自己按逐句时间轴填 `timeline.ts`。
 4. **前 30 秒样片**：只建完第一个构建组就渲 30 秒给你看风格。在这里改一次是 1 个组的成本，整片渲完再改是全部组。
 
 ## 和其他工具的区别
@@ -155,7 +155,7 @@ cd ~/work/my-video
 为 Claude Code 和 Codex 编写，也只在这两个上跑过。skill 本身就是 Markdown 加一个 Remotion 工程，任何能读 `SKILL.md` 式 skill 目录、能执行 shell 命令的 agent 理论上都能照着做。
 
 **需要 GPU 吗？**
-不需要。Remotion 用无头 Chromium 在 CPU 上渲染。中文默认配音 edge-tts 是调微软云端接口；英文默认 kokoro-82m 是 8200 万参数的小模型，本地 CPU 就能跑。
+不需要。Remotion 用无头 Chromium 在 CPU 上渲染。中文和俄文默认配音 edge-tts 会调用微软云端；英文默认 kokoro-82m 是 8200 万参数的小模型，本地 CPU 就能跑。
 
 **能用自己的声音或别的 TTS 吗？**
 可以。把成品音频放到 `public/assets/<slug>/audio.wav`，按 `tts_build.py` 文件头的格式手填 `src/common/timeline.ts` 和 `subs.ts`，后续流程不变。
@@ -173,7 +173,7 @@ cd ~/work/my-video
 目前不能。模板和全部安全区规则都按 1280×720 横屏设计。
 
 **支持哪些语言？**
-中文和英文。各有自己的语速模型、字幕预算与默认音色。两版成片都嵌在本页顶部；`examples/rag/` 里的过程文件是中文版的。
+中文、英文和俄文。俄文使用 `lang: 'ru'`、Edge TTS `ru-RU-DmitryNeural`、西里尔字母估宽和每块 40 字符的字幕预算，并附有 TTS 与文字估宽测试。中文、英文参考成片嵌在本页顶部。
 
 ## 仓库结构
 
@@ -216,7 +216,7 @@ Remotion 自身对公司用户另有授权要求，见 [remotion.dev/license](ht
 
 ## 已知限制
 
-- 中英文都支持（`lang: 'zh' | 'en'`），各有自己的语速、字幕块预算（每块 16 字 / 48 字符）与默认音色。两版成片都嵌在上方；`examples/rag/` 的过程文件是中文版的。只做这一种视觉风格，幕底二选一（`bg: 'stars' | 'dots'`），其他要换就改 `reference/style-guide.md` + `src/ui.tsx`。
+- 中文、英文和俄文都支持（`lang: 'zh' | 'en' | 'ru'`），字幕块预算分别为 16 字 / 48 字符 / 40 字符，并有各自默认音色。俄文默认走云端 Edge TTS；敏感文本应使用本地引擎或成品配音。只做这一种视觉风格，幕底二选一（`bg: 'stars' | 'dots'`），其他要换就改 `reference/style-guide.md` + `src/ui.tsx`。
 - 不适用：复刻某条现有视频、真人口播、以实拍为主的片子。
 - 解说词一旦配音定稿就不能改词（镜头代码里硬编码帧号），改词等于全片重对位。
 - 并行构建对机器有要求：多个 agent 同时跑 Remotion bundle，建议预留 ≥5GB 磁盘；tmux pane 有上限，超过 12 个要分波派。

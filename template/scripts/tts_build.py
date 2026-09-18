@@ -4,8 +4,8 @@
   # CHAPTER <n> <标题>      章节标记（章节前自动加 chapter_gap 帧空白）
   ## gap <帧数>             在下一句前额外插入空白帧
   一句话|按竖线分成字幕短句            → 竖线只切字幕，不影响朗读
-                                       每块预算：中文 ≤16 字 / 英文 ≤48 字符（超了会打 ⚠ 并自动缩字号）
-                                       块首尾空格会去掉；英文片把块用空格拼回整句给 TTS（"a|b" 与 "a | b" 等价），中文直接拼接
+                                       每块预算：中文 ≤16 字 / 英文 ≤48 字符 / русский ≤40 знаков
+                                       块首尾空格会去掉；英文和俄文用空格拼回整句，中文直接拼接
 输出：
   public/assets/<slug>/audio.wav（48k 立体声 16bit；slug 读 src/config.ts）
   script/timeline.json / timeline.md
@@ -13,7 +13,8 @@
 逐句（或逐字幕块）缓存于 audio/cache/，改一句只重合成一句；缓存键含引擎参数与本地模型文件的指纹（路径 + 大小 + mtime + 内容头），换模型自动失效。
 
 TTS 引擎（`TTS_ENGINE`，默认 `auto` = 按解说词语言选；**跑之前先问用户有没有偏好的 TTS**，见 SKILL.md 确认点 3）：
-  edge     中文默认。edge-tts 云端合成，有词级边界 → 字幕节拍最准。VOICE=zh-CN-YunxiNeural RATE=+8%
+  edge     中文与俄文默认。edge-tts 云端合成，有词级边界 → 字幕节拍最准。
+           中文：VOICE=zh-CN-YunxiNeural RATE=+8%；俄文：VOICE=ru-RU-DmitryNeural RATE=+0%。
            词边界要显式请求（boundary='WordBoundary'，7.2.0 起的默认值不给），否则字幕起点会静默退化成插值。
   kokoro   英文默认。kokoro-82m 本地推理（`pip install kokoro soundfile` + espeak-ng：macOS `brew install espeak-ng` / Linux `apt install espeak-ng`）。
            KOKORO_VOICE=am_liam（Liam，男声，与中文云希同定位）KOKORO_LANG=a KOKORO_SPEED=1.0
@@ -32,15 +33,17 @@ import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REM = ROOT
-_cfg = open(f'{ROOT}/src/config.ts', encoding='utf-8').read()
+_cfg_path = f'{ROOT}/src/config.ts'
+with open(_cfg_path, encoding='utf-8') as _cfg_file:
+    _cfg = _cfg_file.read()
 SLUG = re.search(r"slug:\s*'([^']+)'", _cfg).group(1)
-_m = re.search(r"lang:\s*'(zh|en)'", _cfg)
+_m = re.search(r"lang:\s*'(zh|en|ru)'", _cfg)
 CFG_LANG = _m.group(1) if _m else 'zh'
 FPS = 30
 SR = 48000
 ENGINE = os.environ.get('TTS_ENGINE', 'auto')
-VOICE = os.environ.get('VOICE', 'zh-CN-YunxiNeural')
-RATE = os.environ.get('RATE', '+8%')
+VOICE = os.environ.get('VOICE', '')
+RATE = os.environ.get('RATE', '')
 KOKORO_VOICE = os.environ.get('KOKORO_VOICE', 'am_liam')
 KOKORO_LANG = os.environ.get('KOKORO_LANG', 'a')       # a=American English, b=British
 KOKORO_SPEED = float(os.environ.get('KOKORO_SPEED', 1.0))
@@ -90,7 +93,9 @@ def parse(path):
     chap = 0
     chap_title = ''
     pending_gap = 0
-    for raw in open(path, encoding='utf-8'):
+    with open(path, encoding='utf-8') as source:
+        lines = list(source)
+    for raw in lines:
         line = raw.strip()
         if not line:
             continue
@@ -116,18 +121,41 @@ def cache_path(text, ext):
 
 
 def detect_lang(items):
-    """解说词里 CJK 占比 ≥20% → 'zh'，否则 'en'。"""
+    """Detect Chinese, Russian, or English narration by dominant script."""
     txt = ''.join(it['raw'] for it in items if it['type'] == 'sent')
-    cjk = sum(1 for c in txt if '一' <= c <= '鿿')
-    return 'zh' if cjk >= 0.2 * max(1, len(txt)) else 'en'
+    letters = [c for c in txt if c.isalpha()]
+    cjk = sum(1 for c in letters if '一' <= c <= '鿿')
+    cyr = sum(1 for c in letters if '\u0400' <= c <= '\u04ff')
+    threshold = 0.2 * max(1, len(letters))
+    if cjk >= threshold:
+        return 'zh'
+    if cyr >= threshold:
+        return 'ru'
+    return 'en'
 
 
 # 字幕块宽度预判：与 src/common/textfit.ts 用同一张 em 宽表（字体 fontTools 实测），
 # 直接算「44px 下会不会超过安全区 1160px」——比按字数判准，中英混排（如「几百个 token 一块」）不会误报。
-# 授稿建议仍是每块中文 ≤16 字 / 英文 ≤48 字符（见 narration-storyboard.md）。
+# 授稿建议仍是每块中文 ≤16 字 / 英文 ≤48 字符 / 俄文 ≤40 字符（见 narration-storyboard.md）。
 SUB_MAX_W = 1160
 SUB_SIZE = 44
-SUB_BUDGET = {'zh': '16 字', 'en': '48 字符'}
+SUB_BUDGET = {'zh': '16 字', 'en': '48 字符', 'ru': '40 знаков'}
+
+# Bundled Noto Sans SC advance widths at the configured variable-font default, in em.
+CYRILLIC_EM = {
+    'Ё': 0.562, 'А': 0.574, 'Б': 0.621, 'В': 0.632, 'Г': 0.529, 'Д': 0.675,
+    'Е': 0.562, 'Ж': 0.832, 'З': 0.602, 'И': 0.705, 'Й': 0.705, 'К': 0.603,
+    'Л': 0.670, 'М': 0.770, 'Н': 0.698, 'О': 0.714, 'П': 0.694, 'Р': 0.598,
+    'С': 0.619, 'Т': 0.573, 'У': 0.532, 'Ф': 0.779, 'Х': 0.519, 'Ц': 0.684,
+    'Ч': 0.631, 'Ш': 0.913, 'Щ': 0.918, 'Ъ': 0.784, 'Ы': 0.832, 'Ь': 0.621,
+    'Э': 0.619, 'Ю': 0.963, 'Я': 0.611,
+    'а': 0.536, 'б': 0.584, 'в': 0.542, 'г': 0.434, 'д': 0.541, 'е': 0.527,
+    'ж': 0.681, 'з': 0.485, 'и': 0.606, 'й': 0.606, 'к': 0.508, 'л': 0.548,
+    'м': 0.674, 'н': 0.602, 'о': 0.586, 'п': 0.591, 'р': 0.595, 'с': 0.492,
+    'т': 0.479, 'у': 0.468, 'ф': 0.770, 'х': 0.434, 'ц': 0.576, 'ч': 0.532,
+    'ш': 0.780, 'щ': 0.773, 'ъ': 0.632, 'ы': 0.687, 'ь': 0.518, 'э': 0.492,
+    'ю': 0.781, 'я': 0.540, 'ё': 0.527,
+}
 
 
 def text_em(s):
@@ -145,6 +173,8 @@ def text_em(s):
             t += 0.59
         elif 'a' <= ch <= 'z':
             t += 0.566
+        elif ch in CYRILLIC_EM:
+            t += CYRILLIC_EM[ch]
         elif 0xc0 <= c < 0x250:
             t += 0.58                    # 带重音的拉丁字母
         else:
@@ -366,17 +396,26 @@ async def synth_sentence(chunks, sep=''):
 
 
 async def main(narr):
-    global ENGINE
+    global ENGINE, VOICE, RATE
     items = parse(narr)
     lang = detect_lang(items)
+    defaults = {
+        'zh': {'engine': 'edge', 'voice': 'zh-CN-YunxiNeural', 'rate': '+8%', 'sep': ''},
+        'en': {'engine': 'kokoro', 'voice': 'en-US-AndrewNeural', 'rate': '+0%', 'sep': ' '},
+        'ru': {'engine': 'edge', 'voice': 'ru-RU-DmitryNeural', 'rate': '+0%', 'sep': ' '},
+    }[lang]
     if ENGINE == 'auto':
-        ENGINE = 'edge' if lang == 'zh' else 'kokoro'
+        ENGINE = defaults['engine']
         print(f'解说词语言 {lang} → TTS_ENGINE={ENGINE}（有偏好请显式传 TTS_ENGINE=…）')
+    if not VOICE:
+        VOICE = defaults['voice']
+    if not RATE:
+        RATE = defaults['rate']
     if lang != CFG_LANG:
         print(f"⚠ src/config.ts 的 lang: '{CFG_LANG}' 与解说词语言 {lang} 不一致——改过来，"
               f"否则标题压窄与居中基线会按错的语言算")
-    # 字幕块拼回整句给 TTS 时的连接符：英文词与词之间要有空格（否则 "powerful|but" 会被念成 powerfulbut），中文直接拼
-    sep = ' ' if lang == 'en' else ''
+    # 字幕块拼回整句给 TTS 时的连接符：英文和俄文块之间补空格，中文直接拼。
+    sep = defaults['sep']
     t = LEAD / FPS
     audio_parts = []  # (start_sec, np.array)
     sentences = []; chapters = []
@@ -440,10 +479,16 @@ async def main(narr):
           'gap': GAP, 'chapter_gap': CHAPTER_GAP, 'lead': LEAD, 'tail': TAIL,
           'lang': lang, 'chapters': chapters, 'sentences': sentences, 'chars': total_chars, 'words': total_words,
           'speech_sec': round(speech_sec, 2)}
-    unit, cnt = ('字', total_chars) if lang == 'zh' else ('词', total_words)
+    if lang == 'zh':
+        unit, cnt = '字', total_chars
+    elif lang == 'ru':
+        unit, cnt = 'слов', total_words
+    else:
+        unit, cnt = 'words', total_words
     os.makedirs(f'{ROOT}/script', exist_ok=True)
-    json.dump(tl, open(f'{ROOT}/script/timeline.json', 'w'), ensure_ascii=False, indent=1)
-    with open(f'{ROOT}/script/timeline.md', 'w') as f:
+    with open(f'{ROOT}/script/timeline.json', 'w', encoding='utf-8') as timeline_json:
+        json.dump(tl, timeline_json, ensure_ascii=False, indent=1)
+    with open(f'{ROOT}/script/timeline.md', 'w', encoding='utf-8') as f:
         f.write(f"# 时间轴（{ENGINE} · {tl['voice']} {tl['rate']}，共 {total} 帧 = {total/FPS:.1f}s，{cnt} {unit}，语速 {cnt/max(1e-6,speech_sec):.2f} {unit}/s）\n\n")
         f.write('| 句 | 章 | 帧 from–to | 时长 | 文本（| 为字幕切分） |\n|---|---|---|---|---|\n')
         ci = {c['from']: c for c in chapters}
