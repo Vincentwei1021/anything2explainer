@@ -23,7 +23,7 @@
 ## 2. 配音（`scripts/tts_build.py`）
 - **跑之前先过 SKILL.md 的确认点 2（文案定稿）与确认点 3（配音）**：问一句用户有没有偏好的 TTS，没有就用默认，不要摆一堆选项让他挑。
 - 引擎（`TTS_ENGINE`，默认 `auto` 按解说词语言选）：
-  - `edge` **中文默认**。edge-tts，`VOICE=zh-CN-YunxiNeural RATE=+8%`（男声，科普感）；可选 YunjianNeural（激昂）/ YunyangNeural（播报）/ XiaoxiaoNeural（女声）。有词级边界，字幕节拍最准。
+  - `edge` **中文与俄文默认**。中文：`VOICE=zh-CN-YunxiNeural RATE=+8%`；俄文：`VOICE=ru-RU-DmitryNeural RATE=+0%`。edge-tts 有词级边界，字幕节拍最准。
   - `kokoro` **英文默认**。kokoro-82m 本地推理：`KOKORO_VOICE=am_liam KOKORO_LANG=a KOKORO_SPEED=1.0`——Liam，男声，与中文云希同定位。需 `pip install kokoro soundfile` + espeak-ng（macOS `brew install espeak-ng` / Linux `apt install espeak-ng`）。
   - kokoro 没有词边界 → 改为逐字幕块分别合成再拼接：块起始帧因此仍是精确的，但块界断句略生硬（`CHUNK_PAD` 调块间静音）。
   - `kokoro_onnx` / `piper`：Linux/ARM（树莓派）上 `kokoro` 装不动时的本地替代，都走逐块合成路径。`kokoro_onnx` 音色自然（`pip install kokoro-onnx` + `KOKORO_ONNX_MODEL` / `KOKORO_ONNX_VOICES`，`KOKORO_ONNX_VOICE` 默认 am_michael）；`piper` 最快但偏机械（`pip install piper-tts` + `PIPER_MODEL`）。两者都不认 `PRONOUNCE` 读音覆写。安装细节见 README「Linux / Raspberry Pi」。
@@ -53,11 +53,21 @@
 - **排版**：不压窄、居中不预扣基线、宽度兜底，都由 `lang` 自动生效，见 `style-guide.md` §3.1。
 - 英文成片《RAG & Knowledge Bases》见 README 顶部视频（5′02″，kokoro `am_liam` 自然语速，由中文版逐镜头重排帧号而来）；过程文件（分镜、源码、QC）仍只有中文样片的，**视觉标尺看 `examples/rag/frames/`**（图形语言与语言无关）。
 
+## 2.6 俄文片（`config.ts` 的 `lang: 'ru'`）
+
+- 开工先设 `lang: 'ru'`。`tts_build.py` 会按西里尔字母识别俄文，`TTS_ENGINE=auto` 选择 Edge TTS `ru-RU-DmitryNeural`、`RATE=+0%`。
+- 俄文与英文一样在 `|` 分块后用空格拼回整句，避免把相邻词粘在一起。
+- 每句建议 ≤18–22 词；每个字幕块 ≤40 字符。脚本按 комплектный Noto Sans SC 的西里尔字形宽度逐字计算，超出 1160px 会报警。
+- 初始篇幅按约 130 词/分钟估算；第一次合成后以 `speech=` 实测为准，时长偏差 >15% 就改文案。
+- Кириллица не сжимается: `SQUEEZE=1`, `TEXT_DY=0`. Заголовки и названия глав проходят через `fitSize()`.
+- 外文缩写首次出现时写清俄文解释与原缩写；检查 Edge TTS 对数字、拉丁缩写和英文产品名的读法。
+- `edge-tts` 会把解说词发送给 Microsoft；敏感材料使用本地 TTS 或用户提供的 WAV。
+
 ## 3. 分镜（`script/storyboard_src.md` → `分镜表.md`）
 令牌：`{S12.from}` `{S12.to}` `{S12.c3}`（第 3 个字幕块起始帧）`{C2}`（第 2 章起始帧）`{TOTAL}`，可带 ±整数：`{S12.from-8}`。`python3 scripts/render_storyboard.py` 填帧号。
 结构（照 `examples/rag/storyboard_src.md`）：
 1. 头部：总帧数、章节帧、衔接规则（镜头区间 = [句 from−8, 末句 to+2]；元素入场对齐字幕块起始帧 −6…+3）。
-2. 常驻层表（覆盖层，主会话负责）：片头、章节卡、HUD 条目区间、流程轨步骤与切换帧、片尾；有轨的章标注"内容主区 y175–620"。
+2. 常驻层表（覆盖层，主会话负责）：片头、章节卡、HUD 条目区间、流程轨步骤与切换帧、片尾；有轨的章按语言标注内容主区：中文/英文 `y175–620`，俄文 `y175–600`。
 3. 每组一张表（每章两组，G1–Gn 连续编号），每镜头一行：`| 镜头 | 帧 | 节拍（字幕块起始帧） | 画面 | 动效 | 主角·尺寸 | 光 |`。画面写元素、位置（坐标参考值）、颜色语义；动效写入场方式 + 对齐哪个节拍 + 离场方式 + **运镜**（每章 ≥3 次：推近 / 承接位移 / 整组平移 / 视差，见 motion-vocabulary.md §镜头运动）+ **末尾一句「持续：…」**（这个字幕块的动词在画面上持续到下一拍的那个动作：数据流 / 脉冲光点沿箭头跑 / 逐行打字 / 逐格点亮 / 生长 / 闸门开合 / 队列压紧；没有其它运镜的镜头写「持续：1.0→1.05 慢推」，规则见 `composition-and-light.md` §7）；**主角·尺寸**写这一镜头唯一的主角和它的高度（图形 ≥170px 或大字 ≥96px，第 1–2 个节拍入场）；**光**写主角带什么光、当前重点是哪一枚（规则见 `composition-and-light.md`，反例见 `examples/contrast/`）；**"glitch"只写在该镜头的一个重点词上**，其余写"淡入/滑入/缩放"。
 4. 全局约束：示例语境（问句/答复/来源文案原文）、事实清单（画面允许出现的数字/英文）、闪烁白名单（每镜头的重点词）、复用图元清单、**高光时刻清单**（每章 1–2 个镜头：章论点 / 主角登场 / 收尾 payoff，各标登场型 / 大数字型 / 象征物型，按 `composition-and-light.md` §3 编排，≥90 帧）、**运镜清单**（每章 ≥3 处，写在哪个镜头哪个节拍、哪一种）、**§9 持续动作**（照抄 `composition-and-light.md` §7 的三条规则与量化判据：入场后不许完全静止 >30 帧、每镜头静止帧 ≤40%、最长静止 ≤1 s，构建组用 `scripts/motion_check.py <Gn>` 自测）。
 
