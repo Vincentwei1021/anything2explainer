@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 # 从模板创建新项目：new_project.sh <目标目录> <slug>
 set -e
 HERE=$(cd "$(dirname "$0")/.." && pwd)
@@ -12,7 +12,14 @@ case "$SLUG" in
   ''|*[!A-Za-z0-9_-]*) echo "slug 只能用字母/数字/-/_，收到：$SLUG"; exit 1;;
 esac
 mkdir -p "$DEST"
-rsync -a --exclude node_modules --exclude 'build*' --exclude renders --exclude fin_frames --exclude stills --exclude 'audio/cache' "$HERE/" "$DEST/"
+if command -v rsync >/dev/null 2>&1; then
+  rsync -a --exclude node_modules --exclude 'build*' --exclude renders --exclude fin_frames --exclude stills --exclude 'audio/cache' "$HERE/" "$DEST/"
+else
+  # no rsync (e.g. Git for Windows): plain copy, then drop the excluded dirs
+  cp -R "$HERE/." "$DEST/"
+  rm -rf "$DEST/node_modules" "$DEST/renders" "$DEST/fin_frames" "$DEST/stills" "$DEST/audio/cache"
+  find "$DEST" -maxdepth 1 -type d -name 'build*' -exec rm -rf {} +
+fi
 # portable in-place edit: `-i.bak` + rm works on both BSD/macOS and GNU/Linux sed
 # (BSD `sed -i ''` breaks on GNU sed, which reads '' as the script and config.ts as a file)
 sed -i.bak "s/slug: 'demo'/slug: '$SLUG'/" "$DEST/src/config.ts" && rm -f "$DEST/src/config.ts.bak"
