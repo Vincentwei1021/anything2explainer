@@ -70,7 +70,7 @@ pip install 'edge-tts==7.2.8' numpy pillow scipy   # 建议固定 edge-tts 版�
 pip install kokoro soundfile && brew install espeak-ng
 ```
 
-`scipy` 只给质检脚本 `frame_metrics.py` 用。脚本是 zsh + Python 3，在 macOS 上开发与验证；Linux 应可用，Windows 未测试。
+`scipy` 只给质检脚本 `frame_metrics.py` 用。脚本是 bash + Python 3（`python3` 或 `python`），在 macOS 上开发与验证；Linux 与 Windows 上的 Git Bash 应可用（rsync 可选；见 #16）。
 
 ### Linux / 树莓派（ARM）
 

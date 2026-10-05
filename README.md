@@ -70,7 +70,7 @@ pip install 'edge-tts==7.2.8' numpy pillow scipy   # pin edge-tts: it tracks a M
 pip install kokoro soundfile && brew install espeak-ng
 ```
 
-`scipy` is only used by the QC script `frame_metrics.py`. The shell scripts are zsh + Python 3, developed and verified on macOS; Linux should work, Windows is untested.
+`scipy` is only used by the QC script `frame_metrics.py`. The shell scripts are bash + Python 3 (`python3` or `python`), developed on macOS; Linux and Git Bash on Windows should work (rsync optional; see #16).
 
 ### Linux / Raspberry Pi (ARM)
 
