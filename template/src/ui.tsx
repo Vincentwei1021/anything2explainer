@@ -63,10 +63,24 @@ export const exitOp = (N: number, to: number, len = 8) => {
 /** 带光元素"先灭光"：归零淡出开始前 len 帧把 glow 强度 1→0（N=to−exitLen 时为 0） */
 export const glowOffK = (N: number, to: number, len = 6, exitLen = 8) => 1 - clamp01((N - (to - exitLen - len)) / len);
 export const mix = (a: number, b: number, t: number) => a + (b - a) * clamp01(t);
-/** 两个 #rrggbb 之间按 k 混色，返回 rgb() */
+/** 颜色解析：支持 `#rgb` / `#rrggbb` / `rgb(...)`；无法解析时退回白色而不是 NaN。
+ *  （用 `#rrggbb` 专用的 slice 解析去接 `rgb(...)` 会静默产出 `rgb(NaN,NaN,NaN)`——
+ *   整条 SVG 图元不渲染且浏览器与 tsc 都不报错。） */
+const parseColor = (c: string): [number, number, number] => {
+  const s = (c || '').trim();
+  if (s.startsWith('#')) {
+    const h = s.slice(1);
+    const f = h.length === 3 ? h.split('').map((x) => x + x).join('') : h;
+    if (f.length >= 6) return [0, 2, 4].map((i) => parseInt(f.slice(i, i + 2), 16)) as [number, number, number];
+  }
+  const m = s.match(/\d+(\.\d+)?/g);
+  if (m && m.length >= 3) return [Number(m[0]), Number(m[1]), Number(m[2])];
+  return [255, 255, 255];
+};
+/** 两个颜色之间按 k 混色，返回 rgb() */
 export const mixHex = (a: string, b: string, k: number) => {
-  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
-  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const pa = parseColor(a);
+  const pb = parseColor(b);
   const t = clamp01(k);
   return `rgb(${pa.map((v, i) => Math.round(v + (pb[i] - v) * t)).join(',')})`;
 };
@@ -492,5 +506,32 @@ export const RepoCard: React.FC<{x: number; y: number; w?: number; h?: number; n
       <div style={{position: 'absolute', left: 74, top: desc ? 14 : h / 2 - nameSize / 2 - 2, fontFamily: FONT_HEAVY, fontSize: nameSize, fontWeight: 700, color: WHITE, lineHeight: 1, whiteSpace: 'nowrap'}}>{name}</div>
       {desc ? <div style={{position: 'absolute', left: 74, top: 14 + nameSize + 8, fontFamily: FONT_HEAVY, fontSize: descSize, fontWeight: 500, color: GREY, lineHeight: 1, whiteSpace: 'nowrap'}}>{desc}</div> : null}
     </Box>
+  );
+};
+
+/**
+ * 水平刻度尺（阈值 / 区间类镜头用，如 SC22 的「少于 16 个」、SC23 的「阈值 47」）。
+ * `p` = 整体 draw-on 进度 0→1（主轴自左长出，刻度随之点亮）；`hi` = 自 0 染色到该值的区间（世界单位）。
+ * 尺子本身是配角（只白 bloom，**不发光**）；要突出阈值请在镜头里另配 `BigNumber` 大字主角。
+ */
+export const Ruler: React.FC<{x: number; y: number; w?: number; max?: number; step?: number; h?: number; color?: string; hi?: number; hiColor?: string; p?: number; opacity?: number; tickLabel?: boolean}> = ({x, y, w = 880, max = 40, step = 5, h = 30, color = WHITE, hi, hiColor = PURPLE, p = 1, opacity = 1, tickLabel = true}) => {
+  const px = w * clamp01(p);
+  const ticks: Array<React.ReactNode> = [];
+  for (let v = 0; v <= max + 1e-6; v += step) {
+    const tx = (w * v) / max;
+    const on = clamp01((px - tx) / 12 + 1);
+    ticks.push(<line key={`t${v}`} x1={tx} y1={h * 0.30} x2={tx} y2={h * 0.94} stroke={color} strokeWidth={2} opacity={on} />);
+    if (tickLabel && (v === 0 || v === max)) {
+      ticks.push(<text key={`l${v}`} x={tx} y={h * 1.55} fill={GREY} fontSize={20} fontFamily={FONT_HEAVY} textAnchor={v === 0 ? 'start' : 'end'}>{v}</text>);
+    }
+  }
+  return (
+    <div style={{...abs(x, y, w, h), opacity}}>
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{position: 'absolute', left: 0, top: 0, overflow: 'visible', filter: BLOOM_SOFT}}>
+        {hi != null ? <line x1={0} y1={h * 0.62} x2={Math.min(px, (w * hi) / max)} y2={h * 0.62} stroke={hiColor} strokeWidth={8} opacity={0.85} /> : null}
+        <line x1={0} y1={h * 0.62} x2={px} y2={h * 0.62} stroke={color} strokeWidth={3} />
+        {ticks}
+      </svg>
+    </div>
   );
 };

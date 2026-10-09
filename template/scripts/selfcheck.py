@@ -17,12 +17,19 @@ for m in re.finditer(r'^\| (SC\d\d)[^|]*\| (\d+)–(\d+) \|', sb, re.M):
     sb_shots[m.group(1)] = (int(m.group(2)), int(m.group(3)))
 
 # ---- 白名单 ----
-wl_text = re.search(r'\*\*闪烁白名单.*?\*\*：(.*?)。\*\*不在表内', sb, re.S)
 whitelist = {}
-if wl_text:
-    for part in wl_text.group(1).split('·'):
-        mm = re.match(r'\s*(SC\d\d)\s+(.*)', part.strip())
-        if mm: whitelist[mm.group(1)] = mm.group(2).strip()
+wl_sec = re.search(r'###?\s*闪烁白名单.*?(?=\n#{2,4}\s|\Z)', sb, re.S)
+if wl_sec:
+    for m in re.finditer(r'^\|\s*(SC\d\d)\s*\|\s*([^|]+?)\s*\|', wl_sec.group(0), re.M):
+        if m.group(2).strip().startswith('（无'):
+            continue
+        whitelist[m.group(1)] = m.group(2).strip()
+if not whitelist:
+    wl_text = re.search(r'\*\*闪烁白名单.*?\*\*：(.*?)。\*\*不在表内', sb, re.S)
+    if wl_text:
+        for part in wl_text.group(1).split('·'):
+            mm = re.match(r'\s*(SC\d\d)\s+(.*)', part.strip())
+            if mm: whitelist[mm.group(1)] = mm.group(2).strip()
 
 groups = sys.argv[1:] or sorted(os.path.basename(p) for p in glob.glob(f'{ROOT}/src/shots/G*'))
 problems = 0
@@ -45,12 +52,18 @@ for sid, (a, b) in sorted(sb_shots.items()):
             print(f'  ✗ {sid} ({g}) 区间 {ba}–{bb} ≠ 分镜表 {a}–{b}'); problems += 1
 import json
 _tl = json.load(open(f'{ROOT}/script/timeline.json'))
-_chapter_starts = {c['from'] for c in _tl['chapters']}
+_sents = _tl['sentences']
+_card_ranges = set()
+_chaps = sorted({s['chapter'] for s in _sents})
+for _i in range(1, len(_chaps)):
+    _prev = [s for s in _sents if s['chapter'] == _chaps[_i - 1]]
+    _cur = [s for s in _sents if s['chapter'] == _chaps[_i]]
+    if _prev and _cur:
+        _card_ranges.add((_prev[-1]['to'] + 3, _cur[0]['from'] - 9))
 ids = sorted(built, key=lambda k: built[k][0])
 for p, q in zip(ids, ids[1:]):
     gap = built[q][0] - built[p][1]
-    # 章节卡占位（上一章末句 to+3 → 本章首句 from−9）是设计上的空洞，跳过
-    if gap > 1 and any(built[q][0] == cs - 8 for cs in _chapter_starts):  # 下一镜头首帧 = 本章首句 from−8
+    if gap > 1 and (built[p][1] + 1, built[q][0] - 1) in _card_ranges:
         print(f'  · 章节卡空档 {p}→{q}: {built[p][1]}→{built[q][0]}（覆盖层接管）'); continue
     if gap > 1: print(f'  ✗ 空洞 {p}→{q}: {built[p][1]}→{built[q][0]} ({gap-1} 帧无镜头)'); problems += 1
     if gap < -4: print(f'  ✗ 重叠 {p}→{q}: {-gap+1} 帧'); problems += 1
@@ -68,8 +81,12 @@ for g in groups:
         print(f'  {sid} GlitchIn×{n} (白名单 {whitelist.get(sid, "—")}){flag}')
 
 # ---- 2b) 扫光 ----
-sw = re.search(r'扫光白名单[^：:\n]*[：:]\s*([^\n]*)', sb)
-sweep_wl = set(re.findall(r'SC\d\d', sw.group(1))) if sw else set()
+sw = re.search(r'###?\s*扫光白名单.*?(?=\n#{2,4}\s|\Z)', sb, re.S)
+sweep_txt = sw.group(0) if sw else ''
+if not sweep_txt:
+    sw = re.search(r'扫光白名单[^：:\n]*[：:]\s*([^\n]*)', sb)
+    sweep_txt = sw.group(1) if sw else ''
+sweep_wl = set(re.findall(r'SC\d\d', sweep_txt))
 print(f'[sweep] 扫光白名单 {len(sweep_wl)} 条{"（分镜表没写扫光白名单 → 任何扫光都算超标）" if not sw else ""}：{" ".join(sorted(sweep_wl)) or "—"}')
 SWEEP = re.compile(r'<(LightSweep|StageLine|GhostText)\b')
 for g in groups:

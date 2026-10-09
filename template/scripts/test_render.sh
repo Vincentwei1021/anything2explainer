@@ -7,5 +7,5 @@ COMP=$1; A=$2; TAG=${3:-$COMP}; B=build_dev_$TAG
 [ -d "$B" ] || npx remotion bundle src/index.ts --out-dir "$B" --log=error
 OUT=$(mktemp -d "${TMPDIR:-/tmp}/explainer_test_${TAG}_XXXXXX")   # 模板里不能带点：Remotion 会把 .XXXXXX 当成图片序列的扩展名而拒渲
 trap 'rm -rf "$OUT"' EXIT
-time npx remotion render "$B" "$COMP" "$OUT" --sequence --image-format=jpeg --frames=$((A-1))-$((A+28)) --log=error
+time npx remotion render "$B" "$COMP" "$OUT" --sequence --image-format=jpeg --frames=$((A-1))-$((A+28)) --timeout=${RTIMEOUT:-300000} --log=error
 ls "$OUT" | wc -l

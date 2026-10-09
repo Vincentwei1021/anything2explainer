@@ -70,19 +70,34 @@ pip install 'edge-tts==7.2.8' numpy pillow scipy   # 建议固定 edge-tts 版�
 pip install kokoro soundfile && brew install espeak-ng
 ```
 
-`scipy` 只给质检脚本 `frame_metrics.py` 用。脚本是 zsh + Python 3，在 macOS 上开发与验证；Linux 应可用，Windows 未测试。
+`scipy` 只给质检脚本 `frame_metrics.py` 用。脚本是 zsh + Python 3（另需 `rsync`，`new_project.sh` 用它复制模板；macOS 自带，Linux 上 `apt install rsync`），在 macOS 与 Linux 上开发与验证；Windows 未测试。
 
-### Linux / 树莓派（ARM）
+### Linux（x86_64 与树莓派 ARM）
 
-已在树莓派 5（ARM64、Debian trixie、Python 3.13）上跑通。与 macOS 有三处不同：
+已在 Ubuntu 24.04 x86_64 与树莓派 5（ARM64、Debian trixie、Python 3.13）上跑通。除上面 macOS 那份清单外，Linux 还要装：
 
 ```bash
-sudo apt install zsh espeak-ng                 # 脚本是 #!/bin/zsh；espeak-ng 供 kokoro/piper 的 G2P
+# rsync（new_project.sh 用它复制模板）、zsh（脚本是 #!/bin/zsh）、
+# python3-venv（提供 ensurepip，缺了 python3 -m venv 会报 ensurepip is not available）
+sudo apt install rsync zsh python3-venv
 
-# Remotion 没有 linux-arm64 的无头浏览器 → 指向系统 Chromium：
+# Remotion 的无头 Chromium 在无头机器上需要这些运行库
+sudo apt install libnss3 libnspr4 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 \
+  libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 \
+  libasound2t64 libpango-1.0-0 libcairo2 libatspi2.0-0 libexpat1 libx11-6 libxext6
+# Debian 12 / Ubuntu 22.04 去掉 t64 后缀：libatk1.0-0 libatk-bridge2.0-0 libcups2 libasound2
+```
+
+**浏览器。** x86_64 上不用装：Remotion 首次渲染会自己下 Chrome Headless Shell。linux-arm64 没有这个构建，得指向系统浏览器：
+
+```bash
 sudo apt install chromium                       # 或 chromium-browser
 export REMOTION_BROWSER_EXECUTABLE=/usr/bin/chromium   # 由 template/remotion.config.ts 读取（macOS 上无副作用）
 ```
+
+浏览器落在 `template/node_modules/.remotion/`——删掉 `node_modules` 会连带丢失，用 `npx remotion browser ensure` 重新拉。
+
+`espeak-ng`（`sudo apt install espeak-ng`）只在走英文本地引擎时才需要（kokoro/piper 的 G2P），中文 edge-tts 路径不用。
 
 **Linux/ARM 上的配音。** 默认英文引擎 `kokoro` 在 ARM/Python 3.13 上很难装：它固定了旧版 numpy（无 aarch64/py3.13 轮子，只能源码编译，会失败），且依赖 spaCy → `blis`（无 aarch64 轮子、编译不过）。补了两个能干净安装的本地引擎，用 `TTS_ENGINE` 指定，二者都走既有的“逐字幕块合成”路径：
 

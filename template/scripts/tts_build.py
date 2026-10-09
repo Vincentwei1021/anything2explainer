@@ -5,7 +5,9 @@
   空行                     段落分隔：空行前那句是**段末**（= 一个镜头讲完 / 切下一页），下一句前额外加 PARA_GAP 帧。
                            段内小句之间只有 GAP 帧（一口气），停顿只出现在段末——每句都停会让整片显得拖。
   ## gap <帧数>             在下一句前再额外插入空白帧（段末句的末块 <45 帧时加 15–30，给末拍元素落位停留；本脚本跑完会列出这些句）
-  一句话|按竖线分成字幕短句            → 竖线只切字幕，不影响朗读
+  一句话|按竖线分成字幕短句            → 竖线只切字幕，不影响朗读；**块尾写「，」= 在该处给 TTS 一个真停顿**
+                                       （标点送进 TTS 产生约 0.4 s 停顿，字幕显示时自动剥掉尾部标点）。
+                                       注意：加标点还会改变整句韵律，句子可能变长也可能变短，重排时要逐块实测。
                                        每块预算：中文 ≤16 字 / 英文 ≤48 字符（超了会打 ⚠ 并自动缩字号）
                                        块首尾空格会去掉；英文片把块用空格拼回整句给 TTS（"a|b" 与 "a | b" 等价），中文直接拼接
 输出：
@@ -422,7 +424,7 @@ async def main(narr):
         subs = [(t + starts[i], t + (starts[i + 1] if i + 1 < len(starts) else dur)) for i in range(len(chunks))]
         f0 = int(round(t * FPS)) + 1; f1 = int(round((t + dur) * FPS))
         sentences.append({'id': f'S{sid:02d}', 'chapter': it['chapter'], 'from': f0, 'to': f1, 'text': tts_text, 'para': bool(it.get('para_end')),
-                          'subs': [{'from': int(round(a * FPS)) + 1, 'to': int(round(b * FPS)), 'text': c} for c, (a, b) in zip(chunks, subs)]})
+                          'subs': [{'from': int(round(a * FPS)) + 1, 'to': int(round(b * FPS)), 'text': re.sub(r'[，,、；;：:]+$', '', c)} for c, (a, b) in zip(chunks, subs)]})
         audio_parts.append((t, x))
         total_chars += len(re.sub(r'[，。、！？：；“”（）,.!?:;()\-—…\s]', '', tts_text))
         total_words += len(tts_text.split()); speech_sec += dur

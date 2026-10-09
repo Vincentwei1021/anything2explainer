@@ -14,6 +14,8 @@ template/script/timeline.md
 template/分镜表.md
 template/render.done
 template/fin_count.txt
+# 同样由跑过一次 template 生成；它的 resolved 记的是本地 registry 镜像，不入库
+template/package-lock.json
 .synapse/
 
 __pycache__/

@@ -1,5 +1,5 @@
 import React from 'react';
-import {FONT_ORB} from './common/lib';
+import {FONT_ORB_CJK} from './common/lib';
 import {clamp01, easeInOutPow} from './common';
 import {CText, PURPLE, PURPLE_LIGHT, WHITE, GLOW_PURPLE, abs} from './ui';
 
@@ -134,8 +134,15 @@ export const HeroGlow: React.FC<{x: number; y: number; w: number; h: number; r?:
 export const fmtInt = (v: number) => Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 /** len 帧内从 a 计数到 b（幂 2 缓出），返回取整字符串（千分位） */
 export const countTo = (n: number, a: number, b: number, len = 20) => fmtInt(a + (b - a) * (1 - Math.pow(1 - clamp01(n / len), 2)));
+/**
+ * 无千分位的计数：**年份 / 章序号 / 阈值等「编号」一律用它**。
+ * `countTo` 会插千分位，1960 会渲染成「1,960」、2026 成「2,026」——年份带分隔符是硬错误。
+ * 只有真正的「数量」（1,000,000 条、27,000,000 次）才该用带分隔符的 `countTo`。
+ */
+export const countToPlain = (n: number, a: number, b: number, len = 20) => Math.round(a + (b - a) * (1 - Math.pow(1 - clamp01(n / len), 2))).toString();
+
 /** 大数字：Orbitron tabular + 紫硬投影 6px + 紫柔光（片名同款"重"字处理）；unit 为下方小字 */
-export const BigNumber: React.FC<{cx: number; cy: number; value: string | number; size?: number; color?: string; family?: string; weight?: number; letterSpacing?: number; shadow?: string; unit?: string; unitSize?: number; unitColor?: string; opacity?: number; dy?: number}> = ({cx, cy, value, size = 110, color = WHITE, family = FONT_ORB, weight = 700, letterSpacing = 2, shadow = `6px 6px 0 ${PURPLE}, 0 0 28px rgba(102,45,248,.45)`, unit, unitSize = 24, unitColor = '#A0A0A1', opacity = 1, dy = -2}) => (
+export const BigNumber: React.FC<{cx: number; cy: number; value: string | number; size?: number; color?: string; family?: string; weight?: number; letterSpacing?: number; shadow?: string; unit?: string; unitSize?: number; unitColor?: string; opacity?: number; dy?: number}> = ({cx, cy, value, size = 110, color = WHITE, family = FONT_ORB_CJK, weight = 700, letterSpacing = 2, shadow = `6px 6px 0 ${PURPLE}, 0 0 28px rgba(102,45,248,.45)`, unit, unitSize = 24, unitColor = '#A0A0A1', opacity = 1, dy = -2}) => (
   <>
     <CText cx={cx} cy={cy} size={size} weight={weight} family={family} color={color} letterSpacing={letterSpacing} opacity={opacity} dy={dy} shadow={shadow} style={{fontVariantNumeric: 'tabular-nums'}}>
       {value}

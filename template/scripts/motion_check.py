@@ -79,7 +79,7 @@ else:
     bundle = f'{ROOT}/build_dev_mc_{os.getpid()}'
     subprocess.run(['npx', 'remotion', 'bundle', 'src/index.ts', '--out-dir', bundle, '--log=error'], cwd=ROOT, check=True)
     out = tempfile.mkdtemp(prefix='motion_check_'); tmpdirs += [out, bundle]
-    subprocess.run(['npx', 'remotion', 'render', bundle, comp, out, '--sequence', '--image-format=jpeg', '--jpeg-quality=80', '--scale=0.5', f'--every-nth-frame={STEP}', f'--frames={a-1}-{b-1}', '--concurrency=4', '--log=error'], cwd=ROOT, check=True)
+    subprocess.run(['npx', 'remotion', 'render', bundle, comp, out, '--sequence', '--image-format=jpeg', '--jpeg-quality=80', '--scale=0.5', f'--every-nth-frame={STEP}', f'--frames={a-1}-{b-1}', f'--concurrency={min(4, os.cpu_count() or 1)}', '--log=error'], cwd=ROOT, check=True)
     files = sorted(glob.glob(f'{out}/*.jpeg') + glob.glob(f'{out}/*.jpg'))
     frames = [(a + i * STEP, f) for i, f in enumerate(files)]
     shots = [s for s in shots if s[0] in ids]

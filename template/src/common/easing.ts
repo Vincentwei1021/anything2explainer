@@ -97,3 +97,36 @@ export const rnd = (...seeds: number[]) => {
   h ^= h >>> 15;
   return ((h >>> 0) % 100000) / 100000;
 };
+
+
+/**
+ * 把「新时间轴帧」换算回镜头内部的「加停顿前坐标」。
+ *
+ * 用途：解说词在字幕块尾加「，」会让 TTS 在该处停顿、该块之后的时间轴整体后移；
+ * 而镜头内部是绝对帧常量，于是每个镜头带一张 ANCH = [新时间轴帧, 该块加停顿前的 from]。
+ *
+ * **必须是单调不减、且锚点精确命中的映射**。三条实测过的弯路：
+ *  - 分段位移（N = b − 偏移）：偏移在锚点处变大时内容坐标**倒退** Δ 帧，画面把放过的 Δ 帧
+ *    重放一遍（某片 SC06 帧 2512 处倒带了 0.83 s，数组格填好又退回去重填）。
+ *  - 冻结在**锚点内容本身**：锚点会提前 Δ 帧命中，画面比解说词早动。
+ *  - 所以冻结在**锚点内容的前一帧**：段内先按自然速度 1× 走，走到锚点前一帧停住，
+ *    等锚点帧再进这一帧。停顿时长恰好等于那句的静音，画面正好在静音里定格、
+ *    下一句开口的同一帧继续。某片 106 条节拍落点误差 0（最大 6 帧）。
+ *  - 这一段反而**比内容还短**时（加逗号让句子变短了）没有静音可占，按比例轻微加速，不跳内容。
+ *
+ * 锚点表按新时间轴帧递增；调用方保证镜头内部常量仍写「加停顿前」的坐标。
+ */
+export const contentFrame = (b: number, anchors: ReadonlyArray<readonly [number, number]>): number => {
+  if (!anchors.length) return b;
+  const f0 = anchors[0];
+  if (b <= f0[0]) return b - (f0[0] - f0[1]); // 首个锚点之前：整段平移
+  let i = 0;
+  for (let k = 1; k < anchors.length; k++) if (b >= anchors[k][0]) i = k;
+  const [nb, pb] = anchors[i];
+  const nxt = i + 1 < anchors.length ? anchors[i + 1] : null;
+  if (!nxt) return pb + (b - nb); // 末锚点之后：整段平移
+  const newSpan = nxt[0] - nb;
+  const preSpan = nxt[1] - pb;
+  if (newSpan > preSpan) return Math.min(pb + (b - nb), nxt[1] - 1); // 有静音：定格在锚点前一帧
+  return pb + (preSpan * (b - nb)) / newSpan; // 反而变短：轻微加速，不跳内容
+};

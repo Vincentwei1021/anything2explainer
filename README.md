@@ -70,19 +70,34 @@ pip install 'edge-tts==7.2.8' numpy pillow scipy   # pin edge-tts: it tracks a M
 pip install kokoro soundfile && brew install espeak-ng
 ```
 
-`scipy` is only used by the QC script `frame_metrics.py`. The shell scripts are zsh + Python 3, developed and verified on macOS; Linux should work, Windows is untested.
+`scipy` is only used by the QC script `frame_metrics.py`. The shell scripts are zsh + Python 3 (plus `rsync`, which `new_project.sh` uses to copy the template; preinstalled on macOS, `apt install rsync` on Linux), developed and verified on macOS and Linux; Windows is untested.
 
-### Linux / Raspberry Pi (ARM)
+### Linux (x86_64 and ARM / Raspberry Pi)
 
-Verified on a Raspberry Pi 5 (ARM64, Python 3.13). Three things differ from macOS:
+Verified on Ubuntu 24.04 x86_64 and on a Raspberry Pi 5 (ARM64, Python 3.13). On top of the macOS list above, Linux also needs:
 
 ```bash
-sudo apt install zsh espeak-ng                 # scripts are #!/bin/zsh; espeak-ng for kokoro/piper G2P
+# rsync (new_project.sh copies the template with it), zsh (scripts are #!/bin/zsh),
+# python3-venv (provides ensurepip, without it `python3 -m venv` fails)
+sudo apt install rsync zsh python3-venv
 
-# Remotion has no linux-arm64 headless browser → point it at system Chromium:
+# Remotion's headless Chromium needs these shared libs on a headless box
+sudo apt install libnss3 libnspr4 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 \
+  libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 \
+  libasound2t64 libpango-1.0-0 libcairo2 libatspi2.0-0 libexpat1 libx11-6 libxext6
+# Debian 12 / Ubuntu 22.04 drop the t64 suffix: libatk1.0-0 libatk-bridge2.0-0 libcups2 libasound2
+```
+
+**Browser.** On x86_64 you install none: Remotion downloads its own Chrome Headless Shell on first render. On linux-arm64 there is no such build, so point it at the system browser:
+
+```bash
 sudo apt install chromium                       # or chromium-browser
 export REMOTION_BROWSER_EXECUTABLE=/usr/bin/chromium   # read by template/remotion.config.ts (no-op on macOS)
 ```
+
+The browser lands in `template/node_modules/.remotion/` — wiping `node_modules` loses it; re-fetch with `npx remotion browser ensure`.
+
+`espeak-ng` (`sudo apt install espeak-ng`) is only needed for the English local engines (kokoro/piper G2P), not for the Chinese edge-tts path.
 
 **TTS on Linux/ARM.** `kokoro` (the default English engine) is hard to install on ARM/Python 3.13 (it pins an old numpy and pulls spaCy → blis, which lack aarch64 wheels). Two local engines that install cleanly instead — pass one via `TTS_ENGINE`:
 
