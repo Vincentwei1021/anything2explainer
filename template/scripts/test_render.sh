@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 # 30 帧测渲测 fps：test_render.sh <Comp> <起始帧 1 起> [tag]   正常 30 帧 3–12 s；<3 fps 要查滤镜/DOM
 set -e
 ROOT=$(cd "$(dirname "$0")/.." && pwd); cd "$ROOT"

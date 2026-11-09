@@ -18,8 +18,8 @@ resolve_python() {
 PY=$(resolve_python) || exit 1
 ROOT=$(cd "$(dirname "$0")/.." && pwd); cd "$ROOT"
 SEC=${1:-30}; FROM=${2:-0}
-SLUG=$("$PY" -c "import re;print(re.search(r\"slug:\\s*'([^']+)'\", open('src/config.ts').read()).group(1))")
-TOTAL=$("$PY" -c "import re;print(re.search(r'TOTAL_FRAMES\s*=\s*(\d+)', open('src/common/timeline.ts').read()).group(1))")
+SLUG=$("$PY" -c "import re;print(re.search(r\"slug:\\s*'([^']+)'\", open('src/config.ts', encoding='utf-8').read()).group(1))")
+TOTAL=$("$PY" -c "import re;print(re.search(r'TOTAL_FRAMES\s*=\s*(\d+)', open('src/common/timeline.ts', encoding='utf-8').read()).group(1))")
 A=$((FROM * 30)); B=$((A + SEC * 30 - 1))
 [ $B -gt $((TOTAL - 1)) ] && B=$((TOTAL - 1))
 mkdir -p renders

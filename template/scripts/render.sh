@@ -17,7 +17,7 @@ resolve_python() {
 PY=$(resolve_python) || exit 1
 ROOT=$(cd "$(dirname "$0")/.." && pwd); cd "$ROOT"
 V=${VER:-v1}
-SLUG=$("$PY" -c "import re;print(re.search(r\"slug:\\s*'([^']+)'\", open('src/config.ts').read()).group(1))")
+SLUG=$("$PY" -c "import re;print(re.search(r\"slug:\\s*'([^']+)'\", open('src/config.ts', encoding='utf-8').read()).group(1))")
 mkdir -p renders
 [ "${SKIP_BUNDLE:-0}" = 1 ] && [ -d build_full ] || { rm -rf build_full && npx remotion bundle src/index.ts --out-dir build_full --log=error; }
 npx remotion render build_full Video "renders/${SLUG}_${V}.mp4" --codec=h264 --crf=16 --concurrency=${CONC:-6} --timeout=${RTIMEOUT:-300000} --log=error

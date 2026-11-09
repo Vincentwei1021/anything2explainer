@@ -70,14 +70,16 @@ pip install 'edge-tts==7.2.8' numpy pillow scipy   # pin edge-tts: it tracks a M
 pip install kokoro soundfile && brew install espeak-ng
 ```
 
-`scipy` is only used by the QC script `frame_metrics.py`. The shell scripts are zsh + Python 3, developed and verified on macOS; Linux should work, Windows is untested.
+`scipy` is only used by the QC script `frame_metrics.py`. The shell scripts use bash + Python 3 (`python3` or `python`); `rsync` is optional. Developed on macOS; isolated script tests also pass on Linux. Windows requires Git Bash, Python 3, Node.js, and ffmpeg; a full Windows render is not yet verified.
+
+Run isolated script regression tests with a working Python 3: `python template/scripts/test_portable_scripts.py` (or `python3`). These stub npm/Remotion/ffmpeg and simulate a GBK default encoding; they do not replace a real render test.
 
 ### Linux / Raspberry Pi (ARM)
 
 Verified on a Raspberry Pi 5 (ARM64, Python 3.13). Three things differ from macOS:
 
 ```bash
-sudo apt install zsh espeak-ng                 # scripts are #!/bin/zsh; espeak-ng for kokoro/piper G2P
+sudo apt install espeak-ng                     # bash is normally preinstalled; espeak-ng for kokoro/piper G2P
 
 # Remotion has no linux-arm64 headless browser → point it at system Chromium:
 sudo apt install chromium                       # or chromium-browser
