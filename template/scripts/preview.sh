@@ -1,11 +1,25 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 # 前 N 秒样片（确认点 3：先给用户看风格，别等整片渲完）：preview.sh [秒数=30] [起始秒=0]
 #   → renders/<slug>_preview_<a>-<b>s.mp4（含配音/字幕/进度条；还没建的组是空画面，正常）
 set -e
+resolve_python() {
+  local candidate resolved
+  for candidate in python3 python; do
+    resolved=$(command -v "$candidate" 2>/dev/null) || continue
+    [ -n "$resolved" ] || continue
+    if "$resolved" -c 'import sys; raise SystemExit(0 if sys.version_info[0] >= 3 else 1)' >/dev/null 2>&1; then
+      printf '%s\n' "$resolved"
+      return 0
+    fi
+  done
+  echo "Python 3 interpreter not found (checked python3 and python)" >&2
+  return 1
+}
+PY=$(resolve_python) || exit 1
 ROOT=$(cd "$(dirname "$0")/.." && pwd); cd "$ROOT"
 SEC=${1:-30}; FROM=${2:-0}
-SLUG=$(python3 -c "import re;print(re.search(r\"slug:\\s*'([^']+)'\", open('src/config.ts').read()).group(1))")
-TOTAL=$(python3 -c "import re;print(re.search(r'TOTAL_FRAMES\s*=\s*(\d+)', open('src/common/timeline.ts').read()).group(1))")
+SLUG=$("$PY" -c "import re;print(re.search(r\"slug:\\s*'([^']+)'\", open('src/config.ts').read()).group(1))")
+TOTAL=$("$PY" -c "import re;print(re.search(r'TOTAL_FRAMES\s*=\s*(\d+)', open('src/common/timeline.ts').read()).group(1))")
 A=$((FROM * 30)); B=$((A + SEC * 30 - 1))
 [ $B -gt $((TOTAL - 1)) ] && B=$((TOTAL - 1))
 mkdir -p renders
