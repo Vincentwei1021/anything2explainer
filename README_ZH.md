@@ -70,14 +70,16 @@ pip install 'edge-tts==7.2.8' numpy pillow scipy   # 建议固定 edge-tts 版�
 pip install kokoro soundfile && brew install espeak-ng
 ```
 
-`scipy` 只给质检脚本 `frame_metrics.py` 用。脚本是 zsh + Python 3，在 macOS 上开发与验证；Linux 应可用，Windows 未测试。
+`scipy` 只给质检脚本 `frame_metrics.py` 用。脚本使用 bash + Python 3（`python3` 或 `python`），`rsync` 可选。在 macOS 上开发，隔离脚本测试也已在 Linux 上通过。Windows 需安装 Git Bash、Python 3、Node.js 和 ffmpeg；完整 Windows 渲染尚未实机验证。
+
+用可运行的 Python 3 执行隔离回归测试：`python template/scripts/test_portable_scripts.py`（或 `python3`）。测试会替代 npm/Remotion/ffmpeg 并模拟 GBK 默认编码，不代替真实渲染测试。
 
 ### Linux / 树莓派（ARM）
 
 已在树莓派 5（ARM64、Debian trixie、Python 3.13）上跑通。与 macOS 有三处不同：
 
 ```bash
-sudo apt install zsh espeak-ng                 # 脚本是 #!/bin/zsh；espeak-ng 供 kokoro/piper 的 G2P
+sudo apt install espeak-ng                     # bash 通常已预装；espeak-ng 供 kokoro/piper 的 G2P
 
 # Remotion 没有 linux-arm64 的无头浏览器 → 指向系统 Chromium：
 sudo apt install chromium                       # 或 chromium-browser
