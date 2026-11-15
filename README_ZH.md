@@ -7,6 +7,8 @@
 
 [English](README.md) | **简体中文**
 
+[☕ 支持作者](#support)
+
 **给一个主题，产出一条带配音的科普讲解视频。** anything2explainer 是一个 [Claude Code](https://claude.com/claude-code) / [Codex](https://openai.com/codex) skill：输入任意主题，输出一条黑底 MG（motion graphics）风格的讲解视频，带 TTS 配音、字幕和章节进度条，中文或英文都行。画面全部由 [Remotion](https://remotion.dev)（React + TypeScript）代码绘制，不用素材库，不用视频生成模型，也不使用任何现有视频的帧。
 
 它不是一个 CLI。仓库里装的是让 AI 编程 agent 把片子做出来的整套方法：可编译的 Remotion 模板工程、图元与光效库、配音/分镜/渲染/量化质检工具、风格与动效规范、多 agent 分工协议，以及一条完整样片作为质量标尺。
@@ -222,6 +224,18 @@ Remotion 自身对公司用户另有授权要求，见 [remotion.dev/license](ht
 - 不适用：复刻某条现有视频、真人口播、以实拍为主的片子。
 - 解说词一旦配音定稿就不能改词（镜头代码里硬编码帧号），改词等于全片重对位。
 - 并行构建对机器有要求：多个 agent 同时跑 Remotion bundle，建议预留 ≥5GB 磁盘；tmux pane 有上限，超过 12 个要分波派。
+
+<a id="support"></a>
+
+## ☕ 支持作者
+
+如果这个项目帮到了你，欢迎请我喝杯咖啡，支持后续开发与维护。
+
+<img src="assets/wechat-sponsor.jpg" alt="微信赞助收款码" width="280">
+
+微信扫一扫，金额随意。手机查看时，可保存图片，再在微信「扫一扫」中从相册选择。
+
+赞助完全自愿，Star、反馈和分享同样感谢。赞助不改变本项目现有的许可条款。
 
 ## Star History
 
