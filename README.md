@@ -7,6 +7,8 @@
 
 **English** | [简体中文](README_ZH.md)
 
+[☕ Support this project](#support)
+
 **Topic in, narrated explainer video out.** anything2explainer is a [Claude Code](https://claude.com/claude-code) / [Codex](https://openai.com/codex) skill that turns any topic into a black-canvas motion-graphics explainer video with TTS voiceover, subtitles and a chapter progress bar, in Chinese or English. Every frame is drawn in code with [Remotion](https://remotion.dev) (React + TypeScript). No stock footage, no generative video model, no frames lifted from anyone else's work.
 
 It is not a CLI. What ships here is the whole method an AI coding agent needs to finish the film: a compilable Remotion template, a primitives and lighting library, tooling for voiceover / storyboard / rendering / quantitative QC, written style and motion specs, a multi-agent division-of-labour protocol, and one complete reference film as the quality bar.
@@ -222,6 +224,18 @@ Remotion itself has its own license terms for companies — see [remotion.dev/li
 - Not for: replicating an existing video, talking-head presenter footage, or films that are mostly live action.
 - Once the narration is voiced, the words are frozen — shot code hard-codes frame numbers, so a rewrite re-times everything.
 - Parallel builds are demanding: several agents bundle Remotion at once, so keep ≥5 GB free; tmux panes are capped, so past ~12 you have to dispatch in waves.
+
+<a id="support"></a>
+
+## ☕ Support this project
+
+If this project helped you, you're welcome to buy me a coffee and support its continued development and maintenance.
+
+<img src="assets/wechat-sponsor.jpg" alt="WeChat sponsorship QR code" width="280">
+
+Scan with WeChat; any amount is appreciated. On a phone, save the image and select it from your album in WeChat's Scan feature.
+
+Sponsorship is entirely optional. Stars, feedback, and sharing are just as welcome. Sponsorship does not change this project's license terms.
 
 ## Star History
 
