@@ -5,9 +5,9 @@
 [![Remotion](https://img.shields.io/badge/Remotion-4.0-0B84F3)](https://remotion.dev)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-informational)](LICENSE)
 
-[English](README.md) | **简体中文**
+<a href="#support"><img src="https://img.shields.io/badge/%E2%98%95%20%E6%94%AF%E6%8C%81%E4%BD%9C%E8%80%85-16803C?style=for-the-badge" alt="☕ 支持作者" height="32"></a>
 
-[☕ 支持作者](#support)
+[English](README.md) | **简体中文**
 
 **给一个主题，产出一条带配音的科普讲解视频。** anything2explainer 是一个 [Claude Code](https://claude.com/claude-code) / [Codex](https://openai.com/codex) skill：输入任意主题，输出一条黑底 MG（motion graphics）风格的讲解视频，带 TTS 配音、字幕和章节进度条，中文或英文都行。画面全部由 [Remotion](https://remotion.dev)（React + TypeScript）代码绘制，不用素材库，不用视频生成模型，也不使用任何现有视频的帧。
 
