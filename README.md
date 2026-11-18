@@ -1,11 +1,9 @@
 # anything2explainer
 
-<a href="#wechat-community"><img src="https://img.shields.io/badge/WeChat%20community-07C160?style=for-the-badge&amp;logo=wechat&amp;logoColor=white" alt="WeChat community" height="32"></a>
-
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-skill-D97757?logo=anthropic&logoColor=white)](https://claude.com/claude-code)
 [![Codex](https://img.shields.io/badge/Codex-skill-000000)](https://openai.com/codex)
 [![Remotion](https://img.shields.io/badge/Remotion-4.0-0B84F3)](https://remotion.dev)
-[![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-informational)](LICENSE)
+[![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-informational)](LICENSE) <a href="#wechat-community"><img src="https://img.shields.io/badge/WeChat%20community-07C160?style=flat&amp;logo=wechat&amp;logoColor=white" alt="WeChat community" height="20"></a>
 
 <a href="#support"><img src="https://img.shields.io/badge/%E2%98%95%20Support%20author-16803C?style=for-the-badge" alt="☕ Support author" height="32"></a>
 
