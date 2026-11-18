@@ -1,5 +1,7 @@
 # anything2explainer
 
+<a href="#wechat-community"><img src="https://img.shields.io/badge/%E5%BE%AE%E4%BF%A1%E7%BE%A4-07C160?style=for-the-badge&amp;logo=wechat&amp;logoColor=white" alt="微信群" height="32"></a>
+
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-skill-D97757?logo=anthropic&logoColor=white)](https://claude.com/claude-code)
 [![Codex](https://img.shields.io/badge/Codex-skill-000000)](https://openai.com/codex)
 [![Remotion](https://img.shields.io/badge/Remotion-4.0-0B84F3)](https://remotion.dev)
@@ -250,3 +252,15 @@ Remotion 自身对公司用户另有授权要求，见 [remotion.dev/license](ht
    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=Vincentwei1021/anything2explainer&type=date&legend=top-left" />
  </picture>
 </a>
+
+<a id="wechat-community"></a>
+
+## 💬 微信群
+
+欢迎加入「Vincent 的 AI 交流群 1」，一起交流 AI 应用、编程和视频创作。
+
+<a href="assets/wechat-group.jpg"><img src="assets/wechat-group.jpg" alt="Vincent 的 AI 交流群 1 微信入群二维码" width="400"></a>
+
+用微信扫一扫加入。手机查看时，可保存图片，再在微信「扫一扫」中从相册选择。
+
+此二维码在 **2026-11-25 前**有效，以微信提示为准。若已失效，可[通过 X 联系 Vincent](https://x.com/VincentWei93)获取最新入群方式。

@@ -1,5 +1,7 @@
 # anything2explainer
 
+<a href="#wechat-community"><img src="https://img.shields.io/badge/WeChat%20community-07C160?style=for-the-badge&amp;logo=wechat&amp;logoColor=white" alt="WeChat community" height="32"></a>
+
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-skill-D97757?logo=anthropic&logoColor=white)](https://claude.com/claude-code)
 [![Codex](https://img.shields.io/badge/Codex-skill-000000)](https://openai.com/codex)
 [![Remotion](https://img.shields.io/badge/Remotion-4.0-0B84F3)](https://remotion.dev)
@@ -250,3 +252,15 @@ Sponsorship is entirely optional. Stars, feedback, and sharing are just as welco
    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=Vincentwei1021/anything2explainer&type=date&legend=top-left" />
  </picture>
 </a>
+
+<a id="wechat-community"></a>
+
+## 💬 WeChat community
+
+Join “Vincent 的 AI 交流群 1” to chat about AI applications, coding, and video creation.
+
+<a href="assets/wechat-group.jpg"><img src="assets/wechat-group.jpg" alt="Vincent’s AI WeChat community QR code" width="400"></a>
+
+Scan with WeChat to join. On a phone, save the image, then open WeChat’s Scan feature and select it from your album.
+
+This QR code is valid before **2026-11-25**, subject to WeChat’s notice. If it has expired, [contact Vincent on X](https://x.com/VincentWei93) for the latest way to join.
